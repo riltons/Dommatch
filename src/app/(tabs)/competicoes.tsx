@@ -17,13 +17,14 @@ const ScrollContent = styled.ScrollView`
 
 const Content = styled.View`
   flex: 1;
+  padding: 16px;
   padding-bottom: 80px;
 `
 
 const CompetitionCard = styled.TouchableOpacity`
   background-color: ${colors.secondary};
   border-radius: 8px;
-  margin: 8px;
+  margin-bottom: 16px;
   padding: 16px;
 `
 

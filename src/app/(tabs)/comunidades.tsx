@@ -17,14 +17,17 @@ const ScrollContent = styled.ScrollView`
 
 const Content = styled.View`
   flex: 1;
+  padding: 16px;
   padding-bottom: 80px;
 `
 
 const CommunityCard = styled.TouchableOpacity`
   background-color: ${colors.secondary};
   border-radius: 8px;
-  margin: 8px;
+  margin-bottom: 16px;
   padding: 16px;
+  flex-direction: row;
+  align-items: center;
 `
 
 const CommunityHeader = styled.View`
@@ -73,6 +76,15 @@ const StatText = styled.Text`
   font-size: 12px;
   margin-top: 4px;
 `
+
+const SearchContainer = styled.View`
+  padding: 8px 16px;
+  background-color: ${colors.secondary};
+  border-radius: 8px;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 16px;
+`;
 
 export default function Comunidades() {
     const communities = [
