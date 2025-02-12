@@ -8,17 +8,21 @@ import { Header } from "@/components/Header"
 
 const Container = styled.View`
   flex: 1;
-  background-color: ${colors.primary};
+  background-color: ${colors.backgroundDark};
 `
 
-const ScrollContent = styled.ScrollView`
+const ScrollContent = styled.ScrollView.attrs({
+  contentContainerStyle: {
+    flexGrow: 1,
+    padding: 16,
+    paddingBottom: 80,
+  },
+})`
   flex: 1;
 `
 
 const Content = styled.View`
   flex: 1;
-  padding: 16px;
-  padding-bottom: 80px;
 `
 
 const CommunityCard = styled.TouchableOpacity`
@@ -42,39 +46,39 @@ const CommunityInfo = styled.View`
 `
 
 const CommunityName = styled.Text`
-  color: ${colors.gray100};
   font-size: 18px;
   font-weight: bold;
+  color: ${colors.gray100};
+  margin-bottom: 4px;
 `
 
 const CommunityGame = styled.Text`
-  color: ${colors.gray300};
   font-size: 14px;
-  margin-top: 4px;
+  color: ${colors.gray300};
+  margin-bottom: 8px;
 `
 
 const CommunityStats = styled.View`
   flex-direction: row;
-  justify-content: space-around;
-  padding-top: 12px;
-  border-top-width: 1px;
-  border-top-color: ${colors.tertiary}20;
+  align-items: center;
 `
 
 const StatItem = styled.View`
+  flex-direction: row;
   align-items: center;
+  margin-right: 16px;
+`
+
+const StatText = styled.Text`
+  font-size: 14px;
+  color: ${colors.gray300};
+  margin-left: 4px;
 `
 
 const StatNumber = styled.Text`
   color: ${colors.gray100};
   font-size: 16px;
   font-weight: bold;
-`
-
-const StatText = styled.Text`
-  color: ${colors.gray300};
-  font-size: 12px;
-  margin-top: 4px;
 `
 
 const SearchContainer = styled.View`
@@ -139,23 +143,22 @@ export default function Comunidades() {
                                     <CommunityInfo>
                                         <CommunityName>{community.name}</CommunityName>
                                         <CommunityGame>{community.game}</CommunityGame>
+                                        <CommunityStats>
+                                            <StatItem>
+                                                <StatNumber>{community.members}</StatNumber>
+                                                <StatText>Membros</StatText>
+                                            </StatItem>
+                                            <StatItem>
+                                                <StatNumber>{community.tournaments}</StatNumber>
+                                                <StatText>Torneios</StatText>
+                                            </StatItem>
+                                            <StatItem>
+                                                <StatNumber>{community.matches}</StatNumber>
+                                                <StatText>Partidas</StatText>
+                                            </StatItem>
+                                        </CommunityStats>
                                     </CommunityInfo>
                                 </CommunityHeader>
-
-                                <CommunityStats>
-                                    <StatItem>
-                                        <StatNumber>{community.members}</StatNumber>
-                                        <StatText>Membros</StatText>
-                                    </StatItem>
-                                    <StatItem>
-                                        <StatNumber>{community.tournaments}</StatNumber>
-                                        <StatText>Torneios</StatText>
-                                    </StatItem>
-                                    <StatItem>
-                                        <StatNumber>{community.matches}</StatNumber>
-                                        <StatText>Partidas</StatText>
-                                    </StatItem>
-                                </CommunityStats>
                             </CommunityCard>
                         ))}
                     </Content>
