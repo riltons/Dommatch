@@ -2,6 +2,8 @@ import { View } from "react-native"
 import styled from "styled-components/native"
 import { colors } from "@/styles/colors"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
+import { useAuth } from '../hooks/useAuth';
+import { useRouter } from 'expo-router';
 
 const Container = styled.View`
     width: 100%;
@@ -73,6 +75,14 @@ interface HeaderProps {
 }
 
 export function Header({ onNotificationPress, onProfilePress }: HeaderProps) {
+    const { signOut } = useAuth();
+    const router = useRouter();
+
+    const handleLogout = async () => {
+        await signOut();
+        router.push('/login');
+    };
+
     return (
         <Container>
             <LogoContainer>
@@ -98,6 +108,14 @@ export function Header({ onNotificationPress, onProfilePress }: HeaderProps) {
                         name="account-circle-outline" 
                         size={24} 
                         color={colors.accent}
+                    />
+                </IconButton>
+
+                <IconButton onPress={handleLogout}>
+                    <MaterialCommunityIcons 
+                        name="logout" 
+                        size={24} 
+                        color={colors.gray200}
                     />
                 </IconButton>
             </ActionContainer>

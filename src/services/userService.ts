@@ -9,7 +9,18 @@ export const userService = {
         nickname?: string
     ): Promise<{ data: UserProfile | null; error: Error | null }> {
         try {
-            // Criar perfil com papéis padrão (admin e organizer)
+            // Verificar se já existe um usuário com este telefone
+            const { data: existingUser } = await this.findByPhoneNumber(phoneNumber);
+
+            // Se já existe, atualiza os roles
+            if (existingUser) {
+                const updatedRoles = Array.from(new Set([...existingUser.roles, 'admin', 'organizer']));
+                return await this.updateProfile(existingUser.id, {
+                    roles: updatedRoles
+                });
+            }
+
+            // Se não existe, cria novo perfil
             const { data, error } = await supabase
                 .from('user_profiles')
                 .insert({
