@@ -144,68 +144,66 @@ export default function Competicoes() {
     ];
 
     return (
-        <SlideTransition>
-            <Container>
-                <Header />
-                <ScrollContent>
-                    <Content>
-                        {competitions.map(competition => (
-                            <CompetitionCard key={competition.id}>
-                                <CompetitionHeader>
+        <Container>
+            <Header title="Competições" onNotificationPress={() => {}} onProfilePress={() => {}} />
+            <ScrollContent>
+                <Content>
+                    {competitions.map(competition => (
+                        <CompetitionCard key={competition.id}>
+                            <CompetitionHeader>
+                                <MaterialCommunityIcons 
+                                    name="trophy" 
+                                    size={40} 
+                                    color={colors.accent}
+                                />
+                                <CompetitionInfo>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <CompetitionName>{competition.name}</CompetitionName>
+                                        <StatusBadge status={competition.status}>
+                                            <StatusText>{getStatusText(competition.status)}</StatusText>
+                                        </StatusBadge>
+                                    </View>
+                                    <CompetitionGame>{competition.game}</CompetitionGame>
+                                </CompetitionInfo>
+                            </CompetitionHeader>
+
+                            <CompetitionDetails>
+                                <DetailItem>
                                     <MaterialCommunityIcons 
-                                        name="trophy" 
-                                        size={40} 
+                                        name="cash" 
+                                        size={24} 
                                         color={colors.accent}
                                     />
-                                    <CompetitionInfo>
-                                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                            <CompetitionName>{competition.name}</CompetitionName>
-                                            <StatusBadge status={competition.status}>
-                                                <StatusText>{getStatusText(competition.status)}</StatusText>
-                                            </StatusBadge>
-                                        </View>
-                                        <CompetitionGame>{competition.game}</CompetitionGame>
-                                    </CompetitionInfo>
-                                </CompetitionHeader>
+                                    <PrizePool>{competition.prizePool}</PrizePool>
+                                    <DetailText>Premiação</DetailText>
+                                </DetailItem>
 
-                                <CompetitionDetails>
-                                    <DetailItem>
-                                        <MaterialCommunityIcons 
-                                            name="cash" 
-                                            size={24} 
-                                            color={colors.accent}
-                                        />
-                                        <PrizePool>{competition.prizePool}</PrizePool>
-                                        <DetailText>Premiação</DetailText>
-                                    </DetailItem>
+                                <DetailItem>
+                                    <MaterialCommunityIcons 
+                                        name="calendar" 
+                                        size={24} 
+                                        color={colors.accent}
+                                    />
+                                    <PrizePool>{competition.startDate}</PrizePool>
+                                    <DetailText>Início</DetailText>
+                                </DetailItem>
 
-                                    <DetailItem>
-                                        <MaterialCommunityIcons 
-                                            name="calendar" 
-                                            size={24} 
-                                            color={colors.accent}
-                                        />
-                                        <PrizePool>{competition.startDate}</PrizePool>
-                                        <DetailText>Início</DetailText>
-                                    </DetailItem>
+                                <DetailItem>
+                                    <MaterialCommunityIcons 
+                                        name="account-group" 
+                                        size={24} 
+                                        color={colors.accent}
+                                    />
+                                    <PrizePool>{competition.teams}</PrizePool>
+                                    <DetailText>Times</DetailText>
+                                </DetailItem>
+                            </CompetitionDetails>
+                        </CompetitionCard>
+                    ))}
+                </Content>
+            </ScrollContent>
 
-                                    <DetailItem>
-                                        <MaterialCommunityIcons 
-                                            name="account-group" 
-                                            size={24} 
-                                            color={colors.accent}
-                                        />
-                                        <PrizePool>{competition.teams}</PrizePool>
-                                        <DetailText>Times</DetailText>
-                                    </DetailItem>
-                                </CompetitionDetails>
-                            </CompetitionCard>
-                        ))}
-                    </Content>
-                </ScrollContent>
-
-                <FloatingButton actions={fabActions} />
-            </Container>
-        </SlideTransition>
+            <FloatingButton actions={fabActions} />
+        </Container>
     )
 }

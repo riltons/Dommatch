@@ -137,7 +137,7 @@ export default function Jogadores() {
 
     return (
         <Container>
-            <Header />
+            <Header title="Jogadores" onNotificationPress={() => {}} onProfilePress={() => {}} />
             
             <FlatList
                 data={players}

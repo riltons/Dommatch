@@ -125,7 +125,7 @@ export default function Comunidades() {
     return (
         <SlideTransition>
             <Container>
-                <Header />
+                <Header title="Comunidades" onNotificationPress={() => {}} onProfilePress={() => {}} />
                 <ScrollContent>
                     <Content>
                         {communities.map(community => (

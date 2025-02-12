@@ -74,12 +74,19 @@ const BadgeText = styled.Text`
     font-weight: bold;
 `;
 
+const Title = styled.Text`
+    font-size: 24px;
+    font-weight: bold;
+    color: ${colors.gray100};
+`;
+
 interface HeaderProps {
     onNotificationPress?: () => void;
     onProfilePress?: () => void;
+    title?: string;
 }
 
-export function Header({ onNotificationPress, onProfilePress }: HeaderProps) {
+export function Header({ onNotificationPress, onProfilePress, title }: HeaderProps) {
     const { signOut } = useAuth();
     const router = useRouter();
     const statusBarHeight = StatusBar.currentHeight || 0;
@@ -91,38 +98,28 @@ export function Header({ onNotificationPress, onProfilePress }: HeaderProps) {
 
     return (
         <Container statusBarHeight={statusBarHeight}>
-            <LogoContainer>
-                <MaterialCommunityIcons 
-                    name="cards" 
-                    size={32} 
-                    color={colors.accent}
-                />
-                <LogoText>Dominô</LogoText>
-            </LogoContainer>
-
+            {title ? (
+                <Title>{title}</Title>
+            ) : (
+                <LogoContainer>
+                    <LogoIconContainer>
+                        <MaterialCommunityIcons name="cards" size={24} color={colors.accent} />
+                    </LogoIconContainer>
+                    <LogoText>Dominô</LogoText>
+                </LogoContainer>
+            )}
+            
             <ActionContainer>
                 <IconButton onPress={onNotificationPress}>
-                    <MaterialCommunityIcons 
-                        name="bell-outline" 
-                        size={24} 
-                        color={colors.accent}
-                    />
+                    <MaterialCommunityIcons name="bell-outline" size={24} color={colors.accent} />
                 </IconButton>
 
                 <IconButton onPress={onProfilePress}>
-                    <MaterialCommunityIcons 
-                        name="account-circle-outline" 
-                        size={24} 
-                        color={colors.accent}
-                    />
+                    <MaterialCommunityIcons name="account-circle-outline" size={24} color={colors.accent} />
                 </IconButton>
 
                 <IconButton onPress={handleLogout}>
-                    <MaterialCommunityIcons 
-                        name="logout" 
-                        size={24} 
-                        color={colors.gray200}
-                    />
+                    <MaterialCommunityIcons name="logout" size={24} color={colors.gray200} />
                 </IconButton>
             </ActionContainer>
         </Container>
