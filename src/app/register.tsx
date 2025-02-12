@@ -99,63 +99,68 @@ export default function Register() {
 
     return (
         <Container>
-            <Title>Criar Conta</Title>
-            
-            <Input
-                placeholder="Nome completo *"
-                value={form.fullName}
-                onChangeText={(text) => setForm(prev => ({ ...prev, fullName: text }))}
-                placeholderTextColor={colors.gray400}
-            />
-            
-            <Input
-                placeholder="E-mail *"
-                value={form.email}
-                onChangeText={(text) => setForm(prev => ({ ...prev, email: text }))}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                placeholderTextColor={colors.gray400}
-            />
-            
-            <Input
-                placeholder="Senha *"
-                value={form.password}
-                onChangeText={(text) => setForm(prev => ({ ...prev, password: text }))}
-                secureTextEntry
-                placeholderTextColor={colors.gray400}
-            />
-            
-            <Input
-                placeholder="Telefone *"
-                value={form.phoneNumber}
-                onChangeText={(text) => setForm(prev => ({ ...prev, phoneNumber: text }))}
-                keyboardType="phone-pad"
-                placeholderTextColor={colors.gray400}
-            />
-            
-            <Input
-                placeholder="Apelido (opcional)"
-                value={form.nickname}
-                onChangeText={(text) => setForm(prev => ({ ...prev, nickname: text }))}
-                placeholderTextColor={colors.gray400}
-            />
-            
-            <RegisterButton onPress={handleRegister} disabled={loading}>
-                <ButtonText>{loading ? 'Criando conta...' : 'Criar Conta'}</ButtonText>
-            </RegisterButton>
+            <Content>
+                <Title>Criar Conta</Title>
+                
+                <Input
+                    placeholder="Nome completo *"
+                    value={form.fullName}
+                    onChangeText={(text) => setForm(prev => ({ ...prev, fullName: text }))}
+                    placeholderTextColor={colors.gray400}
+                />
+                
+                <Input
+                    placeholder="E-mail *"
+                    value={form.email}
+                    onChangeText={(text) => setForm(prev => ({ ...prev, email: text }))}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    placeholderTextColor={colors.gray400}
+                />
+                
+                <Input
+                    placeholder="Senha *"
+                    value={form.password}
+                    onChangeText={(text) => setForm(prev => ({ ...prev, password: text }))}
+                    secureTextEntry
+                    placeholderTextColor={colors.gray400}
+                />
+                
+                <Input
+                    placeholder="Telefone *"
+                    value={form.phoneNumber}
+                    onChangeText={(text) => setForm(prev => ({ ...prev, phoneNumber: text }))}
+                    keyboardType="phone-pad"
+                    placeholderTextColor={colors.gray400}
+                />
+                
+                <Input
+                    placeholder="Apelido (opcional)"
+                    value={form.nickname}
+                    onChangeText={(text) => setForm(prev => ({ ...prev, nickname: text }))}
+                    placeholderTextColor={colors.gray400}
+                />
+                
+                <RegisterButton onPress={handleRegister} disabled={loading}>
+                    <ButtonText>{loading ? 'Criando conta...' : 'Criar Conta'}</ButtonText>
+                </RegisterButton>
 
-            <LoginLink onPress={() => router.push('/login')}>
-                <LinkText>Já tem uma conta? Faça login</LinkText>
-            </LoginLink>
+                <LoginLink onPress={() => router.push('/login')}>
+                    <LinkText>Já tem uma conta? Faça login</LinkText>
+                </LoginLink>
+            </Content>
         </Container>
     );
 }
 
 const Container = styled.View`
     flex: 1;
-    padding: 20px;
     background-color: ${colors.backgroundDark};
-    justify-content: center;
+`;
+
+const Content = styled.ScrollView`
+    flex: 1;
+    padding: 20px;
 `;
 
 const Title = styled.Text`
@@ -164,6 +169,7 @@ const Title = styled.Text`
     color: ${colors.gray100};
     margin-bottom: 24px;
     text-align: center;
+    margin-top: 40px;
 `;
 
 const Input = styled.TextInput`

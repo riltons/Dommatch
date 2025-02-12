@@ -4,14 +4,19 @@ import { colors } from "@/styles/colors"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useAuth } from '../hooks/useAuth';
 import { useRouter } from 'expo-router';
+import React from 'react';
+import { TouchableOpacity, StatusBar, Platform } from 'react-native';
 
-const Container = styled.View`
+const Container = styled.View<{ statusBarHeight: number }>`
     width: 100%;
-    padding: 20px;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
     background-color: ${colors.secondary};
+    padding-top: ${props => Platform.OS === 'android' ? Math.floor(props.statusBarHeight / 2) + 16 : 16}px;
+    padding-bottom: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
 `;
 
 const LogoContainer = styled.View`
@@ -77,6 +82,7 @@ interface HeaderProps {
 export function Header({ onNotificationPress, onProfilePress }: HeaderProps) {
     const { signOut } = useAuth();
     const router = useRouter();
+    const statusBarHeight = StatusBar.currentHeight || 0;
 
     const handleLogout = async () => {
         await signOut();
@@ -84,7 +90,7 @@ export function Header({ onNotificationPress, onProfilePress }: HeaderProps) {
     };
 
     return (
-        <Container>
+        <Container statusBarHeight={statusBarHeight}>
             <LogoContainer>
                 <MaterialCommunityIcons 
                     name="cards" 

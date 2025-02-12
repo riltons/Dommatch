@@ -11,7 +11,7 @@ export default function Login() {
     const [loading, setLoading] = useState(false);
     const [form, setForm] = useState({
         email: '',
-        password: ''
+        password: '',
     });
 
     const handleLogin = async () => {
@@ -25,10 +25,10 @@ export default function Login() {
             const { error } = await signIn(form.email, form.password);
             if (error) throw error;
 
-            router.push('/dashboard');
-        } catch (error) {
-            Alert.alert('Erro', 'E-mail ou senha inválidos');
-            console.error(error);
+            router.replace('/(tabs)/dashboard');
+        } catch (error: any) {
+            console.error('Erro no login:', error);
+            Alert.alert('Erro', error.message || 'Não foi possível fazer login. Tente novamente.');
         } finally {
             setLoading(false);
         }
@@ -36,40 +36,46 @@ export default function Login() {
 
     return (
         <Container>
-            <Title>Entrar</Title>
-            
-            <Input
-                placeholder="E-mail"
-                value={form.email}
-                onChangeText={(text) => setForm(prev => ({ ...prev, email: text }))}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                placeholderTextColor={colors.gray400}
-            />
-            
-            <Input
-                placeholder="Senha"
-                value={form.password}
-                onChangeText={(text) => setForm(prev => ({ ...prev, password: text }))}
-                secureTextEntry
-                placeholderTextColor={colors.gray400}
-            />
-            
-            <LoginButton onPress={handleLogin} disabled={loading}>
-                <ButtonText>{loading ? 'Entrando...' : 'Entrar'}</ButtonText>
-            </LoginButton>
+            <Content>
+                <Title>Login</Title>
+                
+                <Input
+                    placeholder="E-mail"
+                    value={form.email}
+                    onChangeText={(text) => setForm(prev => ({ ...prev, email: text }))}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    placeholderTextColor={colors.gray400}
+                />
+                
+                <Input
+                    placeholder="Senha"
+                    value={form.password}
+                    onChangeText={(text) => setForm(prev => ({ ...prev, password: text }))}
+                    secureTextEntry
+                    placeholderTextColor={colors.gray400}
+                />
+                
+                <LoginButton onPress={handleLogin} disabled={loading}>
+                    <ButtonText>{loading ? 'Entrando...' : 'Entrar'}</ButtonText>
+                </LoginButton>
 
-            <RegisterLink onPress={() => router.push('/register')}>
-                <LinkText>Não tem uma conta? Cadastre-se</LinkText>
-            </RegisterLink>
+                <RegisterLink onPress={() => router.push('/register')}>
+                    <LinkText>Não tem uma conta? Cadastre-se</LinkText>
+                </RegisterLink>
+            </Content>
         </Container>
     );
 }
 
 const Container = styled.View`
     flex: 1;
-    padding: 20px;
     background-color: ${colors.backgroundDark};
+`;
+
+const Content = styled.View`
+    flex: 1;
+    padding: 20px;
     justify-content: center;
 `;
 
