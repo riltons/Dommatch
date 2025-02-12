@@ -8,7 +8,7 @@ import { userService } from '../services/userService';
 
 export default function Register() {
     const router = useRouter();
-    const { signUp } = useAuth();
+    const { signUp, signIn } = useAuth();
     const [loading, setLoading] = useState(false);
     const [form, setForm] = useState({
         email: '',
@@ -42,8 +42,6 @@ export default function Register() {
                 throw new Error('Erro ao criar usuário. Por favor, tente novamente.');
             }
 
-            console.log('Usuário criado:', data.user);
-
             // 3. Criar ou atualizar perfil
             const { error: profileError } = await userService.createProfile(
                 data.user.id,
@@ -57,16 +55,37 @@ export default function Register() {
                 throw profileError;
             }
 
+            // 4. Fazer login automático
+            const { error: signInError } = await signIn(form.email, form.password);
+            
+            if (signInError) {
+                console.error('Erro ao fazer login automático:', signInError);
+                throw signInError;
+            }
+
             if (existingUser) {
                 Alert.alert(
                     'Bem-vindo de volta!',
-                    'Identificamos que você já é um jogador. Sua conta foi atualizada com privilégios de administrador.'
+                    'Identificamos que você já é um jogador. Sua conta foi atualizada com privilégios de administrador.',
+                    [
+                        {
+                            text: 'OK',
+                            onPress: () => router.push('/(tabs)/dashboard')
+                        }
+                    ]
                 );
             } else {
-                Alert.alert('Sucesso', 'Conta criada com sucesso!');
+                Alert.alert(
+                    'Sucesso',
+                    'Conta criada com sucesso!',
+                    [
+                        {
+                            text: 'OK',
+                            onPress: () => router.push('/(tabs)/dashboard')
+                        }
+                    ]
+                );
             }
-
-            router.push('/login');
         } catch (error: any) {
             console.error('Erro completo no registro:', error);
             Alert.alert(
