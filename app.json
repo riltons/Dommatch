@@ -1,26 +1,34 @@
 {
   "expo": {
-    "name": "rnnotion",
+    "name": "RN Notion",
     "slug": "rnnotion",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "icon": "./src/assets/icon.png",
+    "scheme": "rnnotion",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./src/assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#122a13"
     },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rnnotion"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      }
+        "foregroundImage": "./src/assets/adaptive-icon.png",
+        "backgroundColor": "#122a13"
+      },
+      "package": "com.rnnotion"
     },
     "web": {
       "bundler": "metro",
