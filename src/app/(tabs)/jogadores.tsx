@@ -1,198 +1,356 @@
-import { View, ScrollView, TouchableOpacity, TextInput } from "react-native"
-import styled from "styled-components/native"
-import { colors } from "@/styles/colors"
-import { MaterialCommunityIcons } from "@expo/vector-icons"
-import { SlideTransition } from "@/components/Transitions"
-import { FloatingButton } from "@/components/FloatingButton"
-import { Header } from "@/components/Header"
-
-const Container = styled.View`
-  flex: 1;
-  background-color: ${colors.primary};
-`
-
-const ScrollContent = styled.ScrollView`
-  flex: 1;
-`
-
-const Content = styled.View`
-  flex: 1;
-  padding-bottom: 80px;
-`
-
-const SearchContainer = styled.View`
-  margin: 8px;
-  padding: 8px;
-  background-color: ${colors.secondary};
-  border-radius: 8px;
-  flex-direction: row;
-  align-items: center;
-`
-
-const SearchInput = styled.TextInput.attrs({
-  placeholderTextColor: colors.gray400
-})`
-  flex: 1;
-  color: ${colors.gray100};
-  margin-left: 8px;
-  font-size: 16px;
-`
-
-const PlayerCard = styled.TouchableOpacity`
-  background-color: ${colors.secondary};
-  border-radius: 8px;
-  margin: 8px;
-  padding: 16px;
-  flex-direction: row;
-  align-items: center;
-`
-
-const PlayerAvatar = styled.View`
-  width: 50px;
-  height: 50px;
-  border-radius: 25px;
-  background-color: ${colors.tertiary};
-  align-items: center;
-  justify-content: center;
-`
-
-const PlayerInfo = styled.View`
-  flex: 1;
-  margin-left: 12px;
-`
-
-const PlayerName = styled.Text`
-  color: ${colors.gray100};
-  font-size: 16px;
-  font-weight: bold;
-`
-
-const PlayerTag = styled.Text`
-  color: ${colors.gray300};
-  font-size: 14px;
-  margin-top: 2px;
-`
-
-const PlayerStats = styled.View`
-  flex-direction: row;
-  margin-top: 4px;
-`
-
-const StatBadge = styled.View`
-  background-color: ${colors.primary};
-  padding: 4px 8px;
-  border-radius: 4px;
-  margin-right: 8px;
-  flex-direction: row;
-  align-items: center;
-`
-
-const StatText = styled.Text`
-  color: ${colors.gray200};
-  font-size: 12px;
-  margin-left: 4px;
-`
+import React, { useState, useEffect } from 'react';
+import { Alert, FlatList, RefreshControl, Modal as RNModal } from 'react-native';
+import styled from 'styled-components/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { colors } from '../../styles/colors';
+import { Player, playerService } from '../../services/playerService';
+import { Header } from '@/components/Header';
 
 export default function Jogadores() {
-    const players = [
-        {
-            id: 1,
-            name: "Gabriel Silva",
-            tag: "@gsilva",
-            rank: "Diamante",
-            wins: 128,
-            games: ["CS2", "Valorant"]
-        },
-        {
-            id: 2,
-            name: "Ana Costa",
-            tag: "@anacosta",
-            rank: "Platina",
-            wins: 85,
-            games: ["League of Legends"]
-        },
-        {
-            id: 3,
-            name: "Lucas Santos",
-            tag: "@lsantos",
-            rank: "Ouro",
-            wins: 64,
-            games: ["CS2", "Valorant", "League of Legends"]
-        },
-        {
-            id: 4,
-            name: "Mariana Lima",
-            tag: "@mlima",
-            rank: "Diamante",
-            wins: 156,
-            games: ["Valorant"]
-        }
-    ]
+    const [players, setPlayers] = useState<Player[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [showModal, setShowModal] = useState(false);
+    const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+    const [formData, setFormData] = useState({
+        name: '',
+        nickname: ''
+    });
 
-    const fabActions = [
-        {
-            icon: "account-plus-outline",
-            label: "Novo Jogador",
-            onPress: () => console.log("Novo Jogador"),
-        },
-    ];
+    const loadPlayers = async () => {
+        try {
+            const { data, error } = await playerService.listPlayers();
+            if (error) throw error;
+            setPlayers(data || []);
+        } catch (error) {
+            console.error('Erro ao carregar jogadores:', error);
+            Alert.alert('Erro', 'Não foi possível carregar os jogadores');
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    const handleSave = async () => {
+        if (!formData.name.trim()) {
+            Alert.alert('Erro', 'O nome do jogador é obrigatório');
+            return;
+        }
+
+        try {
+            if (selectedPlayer) {
+                // Atualizar jogador
+                const { error } = await playerService.updatePlayer(selectedPlayer.id, {
+                    name: formData.name.trim(),
+                    nickname: formData.nickname.trim() || null
+                });
+                if (error) throw error;
+                Alert.alert('Sucesso', 'Jogador atualizado com sucesso');
+            } else {
+                // Criar novo jogador
+                const { error } = await playerService.createPlayer(
+                    formData.name.trim(),
+                    formData.nickname.trim() || undefined
+                );
+                if (error) throw error;
+                Alert.alert('Sucesso', 'Jogador adicionado com sucesso');
+            }
+
+            setFormData({ name: '', nickname: '' });
+            setSelectedPlayer(null);
+            setShowModal(false);
+            loadPlayers();
+        } catch (error) {
+            console.error('Erro ao salvar jogador:', error);
+            Alert.alert('Erro', 'Não foi possível salvar o jogador');
+        }
+    };
+
+    const handleEdit = (player: Player) => {
+        setSelectedPlayer(player);
+        setFormData({
+            name: player.name,
+            nickname: player.nickname || ''
+        });
+        setShowModal(true);
+    };
+
+    const handleDelete = (player: Player) => {
+        Alert.alert(
+            'Confirmar exclusão',
+            `Deseja realmente excluir o jogador ${player.name}?`,
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                    text: 'Excluir',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const { error } = await playerService.deletePlayer(player.id);
+                            if (error) throw error;
+                            Alert.alert('Sucesso', 'Jogador excluído com sucesso');
+                            loadPlayers();
+                        } catch (error) {
+                            console.error('Erro ao excluir jogador:', error);
+                            Alert.alert('Erro', 'Não foi possível excluir o jogador');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    useEffect(() => {
+        loadPlayers();
+    }, []);
+
+    const renderItem = ({ item }: { item: Player }) => (
+        <PlayerCard>
+            <PlayerInfo>
+                <PlayerName>{item.name}</PlayerName>
+                {item.nickname && <PlayerNickname>({item.nickname})</PlayerNickname>}
+            </PlayerInfo>
+            <ActionsContainer>
+                <ActionButton onPress={() => handleEdit(item)}>
+                    <MaterialCommunityIcons 
+                        name="pencil" 
+                        size={20} 
+                        color={colors.gray300}
+                    />
+                </ActionButton>
+                <ActionButton onPress={() => handleDelete(item)}>
+                    <MaterialCommunityIcons 
+                        name="trash-can-outline" 
+                        size={20} 
+                        color={colors.error}
+                    />
+                </ActionButton>
+            </ActionsContainer>
+        </PlayerCard>
+    );
+
+    const handleAddNew = () => {
+        setSelectedPlayer(null);
+        setFormData({ name: '', nickname: '' });
+        setShowModal(true);
+    };
 
     return (
-        <SlideTransition>
-            <Container>
-                <Header />
-                <ScrollContent>
-                    <Content>
-                        <SearchContainer>
-                            <MaterialCommunityIcons name="magnify" size={24} color={colors.tertiary} />
-                            <SearchInput 
-                                placeholder="Buscar jogador..."
+        <Container>
+            <Header />
+            
+            <FlatList
+                data={players}
+                renderItem={renderItem}
+                keyExtractor={item => item.id}
+                contentContainerStyle={{ 
+                    padding: 16,
+                    paddingBottom: 80, // Espaço para o FAB
+                    flexGrow: 1,
+                    ...(players.length === 0 && { justifyContent: 'center' })
+                }}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={() => {
+                            setRefreshing(true);
+                            loadPlayers();
+                        }}
+                        colors={[colors.accent]}
+                        tintColor={colors.accent}
+                    />
+                }
+                ListEmptyComponent={
+                    !loading ? (
+                        <EmptyContainer>
+                            <MaterialCommunityIcons 
+                                name="account-group-outline" 
+                                size={48} 
+                                color={colors.gray400}
                             />
-                        </SearchContainer>
+                            <EmptyMessage>
+                                Nenhum jogador cadastrado{'\n'}
+                                Toque no + para adicionar
+                            </EmptyMessage>
+                        </EmptyContainer>
+                    ) : null
+                }
+            />
 
-                        {players.map(player => (
-                            <PlayerCard key={player.id}>
-                                <PlayerAvatar>
-                                    <MaterialCommunityIcons 
-                                        name="account" 
-                                        size={30} 
-                                        color={colors.accent}
-                                    />
-                                </PlayerAvatar>
-                                <PlayerInfo>
-                                    <PlayerName>{player.name}</PlayerName>
-                                    <PlayerTag>{player.tag}</PlayerTag>
-                                    <PlayerStats>
-                                        <StatBadge>
-                                            <MaterialCommunityIcons 
-                                                name="trophy" 
-                                                size={12} 
-                                                color={colors.accent}
-                                            />
-                                            <StatText>{player.wins} vitórias</StatText>
-                                        </StatBadge>
-                                        <StatBadge>
-                                            <MaterialCommunityIcons 
-                                                name="star" 
-                                                size={12} 
-                                                color={colors.accent}
-                                            />
-                                            <StatText>{player.rank}</StatText>
-                                        </StatBadge>
-                                    </PlayerStats>
-                                </PlayerInfo>
-                                <MaterialCommunityIcons 
-                                    name="chevron-right" 
-                                    size={24} 
-                                    color={colors.tertiary}
-                                />
-                            </PlayerCard>
-                        ))}
-                    </Content>
-                </ScrollContent>
+            <AddButton onPress={handleAddNew}>
+                <MaterialCommunityIcons name="plus" size={24} color={colors.gray100} />
+            </AddButton>
 
-                <FloatingButton actions={fabActions} />
-            </Container>
-        </SlideTransition>
-    )
+            <RNModal
+                visible={showModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowModal(false)}
+            >
+                <Modal>
+                    <ModalContent>
+                        <ModalTitle>
+                            {selectedPlayer ? 'Editar Jogador' : 'Adicionar Jogador'}
+                        </ModalTitle>
+                        
+                        <Input
+                            placeholder="Nome do jogador *"
+                            value={formData.name}
+                            onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
+                            placeholderTextColor={colors.gray400}
+                        />
+                        
+                        <Input
+                            placeholder="Apelido (opcional)"
+                            value={formData.nickname}
+                            onChangeText={(text) => setFormData(prev => ({ ...prev, nickname: text }))}
+                            placeholderTextColor={colors.gray400}
+                        />
+
+                        <ButtonsContainer>
+                            <CancelButton onPress={() => {
+                                setShowModal(false);
+                                setSelectedPlayer(null);
+                                setFormData({ name: '', nickname: '' });
+                            }}>
+                                <ButtonText>Cancelar</ButtonText>
+                            </CancelButton>
+                            
+                            <SaveButton onPress={handleSave}>
+                                <ButtonText>Salvar</ButtonText>
+                            </SaveButton>
+                        </ButtonsContainer>
+                    </ModalContent>
+                </Modal>
+            </RNModal>
+        </Container>
+    );
 }
+
+const Container = styled.View`
+    flex: 1;
+    background-color: ${colors.backgroundDark};
+`;
+
+const PlayerCard = styled.View`
+    background-color: ${colors.backgroundLight};
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+`;
+
+const PlayerInfo = styled.View`
+    flex: 1;
+`;
+
+const PlayerName = styled.Text`
+    font-size: 16px;
+    font-weight: bold;
+    color: ${colors.gray100};
+`;
+
+const PlayerNickname = styled.Text`
+    font-size: 14px;
+    color: ${colors.gray300};
+    margin-top: 4px;
+`;
+
+const ActionsContainer = styled.View`
+    flex-direction: row;
+    align-items: center;
+`;
+
+const ActionButton = styled.TouchableOpacity`
+    padding: 8px;
+    margin-left: 8px;
+`;
+
+const EmptyContainer = styled.View`
+    align-items: center;
+    justify-content: center;
+`;
+
+const EmptyMessage = styled.Text`
+    color: ${colors.gray400};
+    text-align: center;
+    margin-top: 16px;
+    font-size: 16px;
+    line-height: 24px;
+`;
+
+const AddButton = styled.TouchableOpacity`
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    width: 56px;
+    height: 56px;
+    border-radius: 28px;
+    background-color: ${colors.accent};
+    align-items: center;
+    justify-content: center;
+    elevation: 4;
+`;
+
+const Modal = styled.View`
+    flex: 1;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+`;
+
+const ModalContent = styled.View`
+    background-color: ${colors.backgroundLight};
+    padding: 20px;
+    border-radius: 8px;
+    width: 100%;
+`;
+
+const ModalTitle = styled.Text`
+    font-size: 20px;
+    font-weight: bold;
+    color: ${colors.gray100};
+    margin-bottom: 16px;
+    text-align: center;
+`;
+
+const Input = styled.TextInput`
+    background-color: ${colors.backgroundDark};
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    color: ${colors.gray100};
+    font-size: 16px;
+`;
+
+const ButtonsContainer = styled.View`
+    flex-direction: row;
+    justify-content: space-between;
+    margin-top: 8px;
+`;
+
+const SaveButton = styled.TouchableOpacity`
+    background-color: ${colors.accent};
+    padding: 16px;
+    border-radius: 8px;
+    flex: 1;
+    margin-left: 8px;
+`;
+
+const CancelButton = styled.TouchableOpacity`
+    background-color: ${colors.gray700};
+    padding: 16px;
+    border-radius: 8px;
+    flex: 1;
+    margin-right: 8px;
+`;
+
+const ButtonText = styled.Text`
+    color: ${colors.gray100};
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+`;
