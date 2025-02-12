@@ -30,40 +30,59 @@ const CompetitionCard = styled.TouchableOpacity`
 
 const CompetitionHeader = styled.View`
   flex-direction: row;
-  align-items: center;
-  margin-bottom: 12px;
+  align-items: flex-start;
+  margin-bottom: 16px;
 `
 
-const StatusBadge = styled.View<{ status: 'open' | 'ongoing' | 'finished' }>`
-  background-color: ${props => 
-    props.status === 'open' ? colors.tertiary : 
-    props.status === 'ongoing' ? colors.highlight :
-    colors.secondary};
+const HeaderContent = styled.View`
+  flex: 1;
+`
+
+const TitleRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+`
+
+const CompetitionInfo = styled.View`
+  flex: 1;
+  margin-left: 12px;
+`
+
+const CompetitionName = styled.Text`
+  font-size: 18px;
+  font-weight: bold;
+  color: ${colors.gray100};
+`
+
+const CompetitionGame = styled.Text`
+  font-size: 14px;
+  color: ${colors.gray300};
+  margin-top: 4px;
+`
+
+const StatusBadge = styled.View<{ status: string }>`
+  background-color: ${props => {
+    switch (props.status) {
+      case 'open':
+        return colors.success + '20';
+      case 'in_progress':
+        return colors.warning + '20';
+      case 'finished':
+        return colors.error + '20';
+      default:
+        return colors.gray700;
+    }
+  }};
   padding: 4px 8px;
   border-radius: 4px;
-  margin-left: 8px;
 `
 
 const StatusText = styled.Text`
   color: ${colors.gray100};
   font-size: 12px;
   font-weight: 500;
-`
-
-const CompetitionInfo = styled.View`
-  flex: 1;
-`
-
-const CompetitionName = styled.Text`
-  color: ${colors.gray100};
-  font-size: 18px;
-  font-weight: bold;
-`
-
-const CompetitionGame = styled.Text`
-  color: ${colors.gray300};
-  font-size: 14px;
-  margin-top: 4px;
 `
 
 const CompetitionDetails = styled.View`
@@ -92,118 +111,120 @@ const PrizePool = styled.Text`
 `
 
 export default function Competicoes() {
-    const competitions = [
-        {
-            id: 1,
-            name: "Torneio de Verão",
-            game: "Counter-Strike 2",
-            status: "open" as const,
-            prizePool: "R$ 5.000",
-            startDate: "15/02",
-            teams: 8
-        },
-        {
-            id: 2,
-            name: "Copa League of Legends",
-            game: "League of Legends",
-            status: "ongoing" as const,
-            prizePool: "R$ 10.000",
-            startDate: "10/02",
-            teams: 16
-        },
-        {
-            id: 3,
-            name: "Valorant Championship",
-            game: "Valorant",
-            status: "finished" as const,
-            prizePool: "R$ 3.000",
-            startDate: "01/02",
-            teams: 12
-        }
-    ]
-
-    const getStatusText = (status: string) => {
-        switch(status) {
-            case 'open':
-                return 'Inscrições Abertas'
-            case 'ongoing':
-                return 'Em Andamento'
-            case 'finished':
-                return 'Finalizado'
-            default:
-                return status
-        }
+  const competitions = [
+    {
+      id: 1,
+      name: "Torneio de Verão",
+      game: "Counter-Strike 2",
+      status: "open" as const,
+      prizePool: "R$ 5.000",
+      startDate: "15/02",
+      teams: 8
+    },
+    {
+      id: 2,
+      name: "Copa League of Legends",
+      game: "League of Legends",
+      status: "in_progress" as const,
+      prizePool: "R$ 10.000",
+      startDate: "10/02",
+      teams: 16
+    },
+    {
+      id: 3,
+      name: "Valorant Championship",
+      game: "Valorant",
+      status: "finished" as const,
+      prizePool: "R$ 3.000",
+      startDate: "01/02",
+      teams: 12
     }
+  ]
 
-    const fabActions = [
-        {
-            icon: "trophy-outline",
-            label: "Nova Competição",
-            onPress: () => console.log("Nova Competição"),
-        },
-    ];
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'open':
+        return 'Inscrições Abertas'
+      case 'in_progress':
+        return 'Em Andamento'
+      case 'finished':
+        return 'Finalizado'
+      default:
+        return status
+    }
+  }
 
-    return (
-        <Container>
-            <Header title="Competições" onNotificationPress={() => {}} onProfilePress={() => {}} />
-            <ScrollContent>
-                <Content>
-                    {competitions.map(competition => (
-                        <CompetitionCard key={competition.id}>
-                            <CompetitionHeader>
-                                <MaterialCommunityIcons 
-                                    name="trophy" 
-                                    size={40} 
-                                    color={colors.accent}
-                                />
-                                <CompetitionInfo>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                        <CompetitionName>{competition.name}</CompetitionName>
-                                        <StatusBadge status={competition.status}>
-                                            <StatusText>{getStatusText(competition.status)}</StatusText>
-                                        </StatusBadge>
-                                    </View>
-                                    <CompetitionGame>{competition.game}</CompetitionGame>
-                                </CompetitionInfo>
-                            </CompetitionHeader>
+  const fabActions = [
+    {
+      icon: "trophy-outline",
+      label: "Nova Competição",
+      onPress: () => console.log("Nova Competição"),
+    },
+  ];
 
-                            <CompetitionDetails>
-                                <DetailItem>
-                                    <MaterialCommunityIcons 
-                                        name="cash" 
-                                        size={24} 
-                                        color={colors.accent}
-                                    />
-                                    <PrizePool>{competition.prizePool}</PrizePool>
-                                    <DetailText>Premiação</DetailText>
-                                </DetailItem>
+  return (
+    <Container>
+      <Header title="Competições" onNotificationPress={() => {}} onProfilePress={() => {}} />
+      <ScrollContent>
+        <Content>
+          {competitions.map(competition => (
+            <CompetitionCard key={competition.id}>
+              <CompetitionHeader>
+                <MaterialCommunityIcons 
+                  name="trophy" 
+                  size={40} 
+                  color={colors.accent}
+                />
+                <CompetitionInfo>
+                  <HeaderContent>
+                    <TitleRow>
+                      <CompetitionName>{competition.name}</CompetitionName>
+                      <StatusBadge status={competition.status}>
+                        <StatusText>{getStatusText(competition.status)}</StatusText>
+                      </StatusBadge>
+                    </TitleRow>
+                    <CompetitionGame>{competition.game}</CompetitionGame>
+                  </HeaderContent>
+                </CompetitionInfo>
+              </CompetitionHeader>
 
-                                <DetailItem>
-                                    <MaterialCommunityIcons 
-                                        name="calendar" 
-                                        size={24} 
-                                        color={colors.accent}
-                                    />
-                                    <PrizePool>{competition.startDate}</PrizePool>
-                                    <DetailText>Início</DetailText>
-                                </DetailItem>
+              <CompetitionDetails>
+                <DetailItem>
+                  <MaterialCommunityIcons 
+                    name="cash" 
+                    size={24} 
+                    color={colors.accent}
+                  />
+                  <PrizePool>{competition.prizePool}</PrizePool>
+                  <DetailText>Premiação</DetailText>
+                </DetailItem>
 
-                                <DetailItem>
-                                    <MaterialCommunityIcons 
-                                        name="account-group" 
-                                        size={24} 
-                                        color={colors.accent}
-                                    />
-                                    <PrizePool>{competition.teams}</PrizePool>
-                                    <DetailText>Times</DetailText>
-                                </DetailItem>
-                            </CompetitionDetails>
-                        </CompetitionCard>
-                    ))}
-                </Content>
-            </ScrollContent>
+                <DetailItem>
+                  <MaterialCommunityIcons 
+                    name="calendar" 
+                    size={24} 
+                    color={colors.accent}
+                  />
+                  <PrizePool>{competition.startDate}</PrizePool>
+                  <DetailText>Início</DetailText>
+                </DetailItem>
 
-            <FloatingButton actions={fabActions} />
-        </Container>
-    )
+                <DetailItem>
+                  <MaterialCommunityIcons 
+                    name="account-group" 
+                    size={24} 
+                    color={colors.accent}
+                  />
+                  <PrizePool>{competition.teams}</PrizePool>
+                  <DetailText>Times</DetailText>
+                </DetailItem>
+              </CompetitionDetails>
+            </CompetitionCard>
+          ))}
+        </Content>
+      </ScrollContent>
+
+      <FloatingButton actions={fabActions} />
+    </Container>
+  )
 }
