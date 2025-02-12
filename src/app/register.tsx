@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import { Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import styled from 'styled-components/native';
 import { colors } from '../styles/colors';
-import { userService } from '../services/userService';
 import { useAuth } from '../hooks/useAuth';
+import { userService } from '../services/userService';
 
 export default function Register() {
     const router = useRouter();
@@ -26,39 +26,53 @@ export default function Register() {
 
         setLoading(true);
         try {
-            // Verificar se o usuário já existe pelo número de telefone
+            // 1. Verificar se já existe usuário com este telefone
             const { data: existingUser } = await userService.findByPhoneNumber(form.phoneNumber);
 
-            if (existingUser) {
-                // Se já existe como jogador, permite criar conta de admin/organizador
-                const { error: signUpError } = await signUp(form.email, form.password);
-                if (signUpError) throw signUpError;
+            // 2. Criar conta de autenticação
+            const { data, error: signUpError } = await signUp(form.email, form.password);
+            
+            if (signUpError) {
+                console.error('Erro no signUp:', signUpError);
+                throw new Error(signUpError.message);
+            }
 
+            if (!data.user) {
+                console.error('Usuário não criado após signUp');
+                throw new Error('Erro ao criar usuário. Por favor, tente novamente.');
+            }
+
+            console.log('Usuário criado:', data.user);
+
+            // 3. Criar ou atualizar perfil
+            const { error: profileError } = await userService.createProfile(
+                data.user.id,
+                form.fullName,
+                form.phoneNumber,
+                form.nickname
+            );
+
+            if (profileError) {
+                console.error('Erro ao criar perfil:', profileError);
+                throw profileError;
+            }
+
+            if (existingUser) {
                 Alert.alert(
                     'Bem-vindo de volta!',
                     'Identificamos que você já é um jogador. Sua conta foi atualizada com privilégios de administrador.'
                 );
-                router.push('/dashboard');
             } else {
-                // Criar novo usuário
-                const { error: signUpError } = await signUp(form.email, form.password);
-                if (signUpError) throw signUpError;
-
-                // Criar perfil do usuário
-                const { error: profileError } = await userService.createProfile(
-                    form.email, // temporário até ter o userId da auth
-                    form.fullName,
-                    form.phoneNumber,
-                    form.nickname
-                );
-                if (profileError) throw profileError;
-
                 Alert.alert('Sucesso', 'Conta criada com sucesso!');
-                router.push('/dashboard');
             }
-        } catch (error) {
-            Alert.alert('Erro', 'Não foi possível criar sua conta. Tente novamente.');
-            console.error(error);
+
+            router.push('/login');
+        } catch (error: any) {
+            console.error('Erro completo no registro:', error);
+            Alert.alert(
+                'Erro',
+                error.message || 'Não foi possível criar sua conta. Tente novamente.'
+            );
         } finally {
             setLoading(false);
         }
