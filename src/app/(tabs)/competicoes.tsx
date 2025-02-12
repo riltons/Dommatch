@@ -44,7 +44,7 @@ const StatusBadge = styled.View<{ status: 'open' | 'ongoing' | 'finished' }>`
 `
 
 const StatusText = styled.Text`
-  color: ${colors.accent};
+  color: ${colors.gray100};
   font-size: 12px;
   font-weight: 500;
 `
@@ -54,13 +54,13 @@ const CompetitionInfo = styled.View`
 `
 
 const CompetitionName = styled.Text`
-  color: ${colors.accent};
+  color: ${colors.gray100};
   font-size: 18px;
   font-weight: bold;
 `
 
 const CompetitionGame = styled.Text`
-  color: ${colors.tertiary};
+  color: ${colors.gray300};
   font-size: 14px;
   margin-top: 4px;
 `
@@ -78,15 +78,16 @@ const DetailItem = styled.View`
 `
 
 const DetailText = styled.Text`
-  color: ${colors.tertiary};
-  font-size: 14px;
+  color: ${colors.gray300};
+  font-size: 12px;
   margin-top: 4px;
 `
 
 const PrizePool = styled.Text`
-  color: ${colors.accent};
+  color: ${colors.gray100};
   font-size: 16px;
   font-weight: bold;
+  margin-top: 4px;
 `
 
 export default function Competicoes() {

@@ -39,14 +39,15 @@ const CommunityInfo = styled.View`
 `
 
 const CommunityName = styled.Text`
-  color: ${colors.accent};
+  color: ${colors.gray100};
   font-size: 18px;
   font-weight: bold;
 `
 
 const CommunityGame = styled.Text`
-  color: ${colors.tertiary};
+  color: ${colors.gray300};
   font-size: 14px;
+  margin-top: 4px;
 `
 
 const CommunityStats = styled.View`
@@ -62,14 +63,15 @@ const StatItem = styled.View`
 `
 
 const StatNumber = styled.Text`
-  color: ${colors.accent};
+  color: ${colors.gray100};
   font-size: 16px;
   font-weight: bold;
 `
 
 const StatText = styled.Text`
-  color: ${colors.tertiary};
+  color: ${colors.gray300};
   font-size: 12px;
+  margin-top: 4px;
 `
 
 export default function Comunidades() {

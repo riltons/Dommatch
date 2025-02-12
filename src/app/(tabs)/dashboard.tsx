@@ -45,13 +45,13 @@ const StatCard = styled.View`
 const StatValue = styled.Text`
     font-size: 24px;
     font-weight: bold;
-    color: ${colors.accent}F2;
+    color: ${colors.gray100};
     margin-top: 8px;
 `;
 
 const StatLabel = styled.Text`
     font-size: 14px;
-    color: ${colors.accent}B3;
+    color: ${colors.gray200};
     margin-top: 4px;
 `;
 
@@ -64,9 +64,9 @@ const RecentActivityCard = styled.View`
 `;
 
 const ActivityTitle = styled.Text`
-    font-size: 18px;
+    font-size: 20px;
     font-weight: bold;
-    color: ${colors.accent}F2;
+    color: ${colors.gray100};
     margin-bottom: 16px;
 `;
 
@@ -81,13 +81,13 @@ const ActivityItem = styled.View`
 const ActivityText = styled.Text`
     flex: 1;
     font-size: 14px;
-    color: ${colors.accent}CC;
+    color: ${colors.gray200};
     margin-left: 12px;
 `;
 
 const ActivityTime = styled.Text`
     font-size: 12px;
-    color: ${colors.accent}80;
+    color: ${colors.gray400};
     margin-left: 8px;
 `;
 

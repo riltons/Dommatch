@@ -30,7 +30,8 @@ const LogoIconContainer = styled.View`
 const LogoText = styled.Text`
     font-size: 24px;
     font-weight: bold;
-    color: ${colors.accent};
+    color: ${colors.gray100};
+    margin-left: 8px;
 `;
 
 const ActionContainer = styled.View`
@@ -46,6 +47,24 @@ const IconButton = styled.TouchableOpacity`
     align-items: center;
     justify-content: center;
     margin-left: 12px;
+`;
+
+const NotificationBadge = styled.View`
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background-color: ${colors.error};
+    width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    align-items: center;
+    justify-content: center;
+`;
+
+const BadgeText = styled.Text`
+    color: ${colors.gray100};
+    font-size: 10px;
+    font-weight: bold;
 `;
 
 interface HeaderProps {

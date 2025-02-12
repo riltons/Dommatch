@@ -30,10 +30,10 @@ const SearchContainer = styled.View`
 `
 
 const SearchInput = styled.TextInput.attrs({
-  placeholderTextColor: colors.tertiary
+  placeholderTextColor: colors.gray400
 })`
   flex: 1;
-  color: ${colors.accent};
+  color: ${colors.gray100};
   margin-left: 8px;
   font-size: 16px;
 `
@@ -62,14 +62,15 @@ const PlayerInfo = styled.View`
 `
 
 const PlayerName = styled.Text`
-  color: ${colors.accent};
-  font-size: 18px;
+  color: ${colors.gray100};
+  font-size: 16px;
   font-weight: bold;
 `
 
 const PlayerTag = styled.Text`
-  color: ${colors.tertiary};
+  color: ${colors.gray300};
   font-size: 14px;
+  margin-top: 2px;
 `
 
 const PlayerStats = styled.View`
@@ -87,7 +88,7 @@ const StatBadge = styled.View`
 `
 
 const StatText = styled.Text`
-  color: ${colors.accent};
+  color: ${colors.gray200};
   font-size: 12px;
   margin-left: 4px;
 `
