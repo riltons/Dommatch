@@ -57,14 +57,12 @@ export function Header({ onNotificationPress, onProfilePress }: HeaderProps) {
     return (
         <Container>
             <LogoContainer>
-                <LogoIconContainer>
-                    <MaterialCommunityIcons 
-                        name="domino-mask" 
-                        size={24} 
-                        color={colors.secondary}
-                    />
-                </LogoIconContainer>
-                <LogoText>Domatch</LogoText>
+                <MaterialCommunityIcons 
+                    name="cards" 
+                    size={32} 
+                    color={colors.accent}
+                />
+                <LogoText>Dominô</LogoText>
             </LogoContainer>
 
             <ActionContainer>
