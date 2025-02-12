@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import styled from 'styled-components/native';
 import { colors } from '../styles/colors';
@@ -22,13 +22,17 @@ export default function Login() {
 
         setLoading(true);
         try {
-            const { error } = await signIn(form.email, form.password);
-            if (error) throw error;
+            const response = await signIn(form.email, form.password);
+            
+            if (!response.success) {
+                Alert.alert('Erro', response.error || 'Não foi possível fazer login. Tente novamente.');
+                return;
+            }
 
             router.replace('/(tabs)/dashboard');
         } catch (error: any) {
             console.error('Erro no login:', error);
-            Alert.alert('Erro', error.message || 'Não foi possível fazer login. Tente novamente.');
+            Alert.alert('Erro', 'Ocorreu um erro inesperado. Tente novamente.');
         } finally {
             setLoading(false);
         }
@@ -46,6 +50,7 @@ export default function Login() {
                     keyboardType="email-address"
                     autoCapitalize="none"
                     placeholderTextColor={colors.gray400}
+                    editable={!loading}
                 />
                 
                 <Input
@@ -54,15 +59,20 @@ export default function Login() {
                     onChangeText={(text) => setForm(prev => ({ ...prev, password: text }))}
                     secureTextEntry
                     placeholderTextColor={colors.gray400}
+                    editable={!loading}
                 />
-                
+
                 <LoginButton onPress={handleLogin} disabled={loading}>
-                    <ButtonText>{loading ? 'Entrando...' : 'Entrar'}</ButtonText>
+                    {loading ? (
+                        <ActivityIndicator color={colors.secondary} />
+                    ) : (
+                        <LoginButtonText>Entrar</LoginButtonText>
+                    )}
                 </LoginButton>
 
-                <RegisterLink onPress={() => router.push('/register')}>
-                    <LinkText>Não tem uma conta? Cadastre-se</LinkText>
-                </RegisterLink>
+                <SignUpButton onPress={() => router.push('/signup')} disabled={loading}>
+                    <SignUpButtonText>Não tem uma conta? Cadastre-se</SignUpButtonText>
+                </SignUpButton>
             </Content>
         </Container>
     );
@@ -80,15 +90,15 @@ const Content = styled.View`
 `;
 
 const Title = styled.Text`
-    font-size: 24px;
+    font-size: 32px;
     font-weight: bold;
     color: ${colors.gray100};
-    margin-bottom: 24px;
+    margin-bottom: 32px;
     text-align: center;
 `;
 
 const Input = styled.TextInput`
-    background-color: ${colors.backgroundLight};
+    background-color: ${colors.secondary};
     padding: 16px;
     border-radius: 8px;
     margin-bottom: 16px;
@@ -104,19 +114,21 @@ const LoginButton = styled.TouchableOpacity`
     opacity: ${props => props.disabled ? 0.7 : 1};
 `;
 
-const ButtonText = styled.Text`
-    color: ${colors.gray100};
+const LoginButtonText = styled.Text`
+    color: ${colors.secondary};
     font-size: 16px;
     font-weight: bold;
     text-align: center;
 `;
 
-const RegisterLink = styled.TouchableOpacity`
-    margin-top: 16px;
+const SignUpButton = styled.TouchableOpacity`
+    padding: 16px;
+    margin-top: 8px;
+    opacity: ${props => props.disabled ? 0.7 : 1};
 `;
 
-const LinkText = styled.Text`
-    color: ${colors.gray200};
+const SignUpButtonText = styled.Text`
+    color: ${colors.accent};
     font-size: 14px;
     text-align: center;
 `;

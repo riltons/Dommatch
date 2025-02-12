@@ -1,171 +1,391 @@
-import { View, ScrollView, TouchableOpacity } from "react-native"
-import styled from "styled-components/native"
-import { colors } from "@/styles/colors"
-import { MaterialCommunityIcons } from "@expo/vector-icons"
-import { SlideTransition } from "@/components/Transitions"
-import { FloatingButton } from "@/components/FloatingButton"
-import { Header } from "@/components/Header"
+import React, { useState, useEffect } from 'react';
+import { Alert, Modal as RNModal, ActivityIndicator, TouchableOpacity } from 'react-native';
+import styled from 'styled-components/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { colors } from '@/styles/colors';
+import { Header } from '@/components/Header';
+import { Community, communityService } from '@/services/communityService';
 
 const Container = styled.View`
-  flex: 1;
-  background-color: ${colors.backgroundDark};
-`
+    flex: 1;
+    background-color: ${colors.backgroundDark};
+`;
 
 const ScrollContent = styled.ScrollView.attrs({
-  contentContainerStyle: {
-    flexGrow: 1,
-    padding: 16,
-    paddingBottom: 80,
-  },
+    contentContainerStyle: {
+        flexGrow: 1,
+        padding: 16,
+        paddingBottom: 80,
+    },
 })`
-  flex: 1;
-`
-
-const Content = styled.View`
-  flex: 1;
-`
+    flex: 1;
+`;
 
 const CommunityCard = styled.TouchableOpacity`
-  background-color: ${colors.secondary};
-  border-radius: 8px;
-  margin-bottom: 16px;
-  padding: 16px;
-  flex-direction: row;
-  align-items: center;
-`
+    background-color: ${colors.secondary};
+    border-radius: 8px;
+    margin-bottom: 16px;
+    padding: 16px;
+`;
 
 const CommunityHeader = styled.View`
-  flex-direction: row;
-  align-items: center;
-  margin-bottom: 12px;
-`
+    flex-direction: row;
+    align-items: flex-start;
+`;
 
 const CommunityInfo = styled.View`
-  flex: 1;
-  margin-left: 12px;
-`
+    flex: 1;
+    margin-left: 12px;
+`;
 
 const CommunityName = styled.Text`
-  font-size: 18px;
-  font-weight: bold;
-  color: ${colors.gray100};
-  margin-bottom: 4px;
-`
+    font-size: 18px;
+    font-weight: bold;
+    color: ${colors.gray100};
+`;
 
-const CommunityGame = styled.Text`
-  font-size: 14px;
-  color: ${colors.gray300};
-  margin-bottom: 8px;
-`
+const CommunityDescription = styled.Text`
+    font-size: 14px;
+    color: ${colors.gray300};
+    margin-top: 4px;
+    margin-bottom: 12px;
+`;
 
 const CommunityStats = styled.View`
-  flex-direction: row;
-  align-items: center;
-`
+    flex-direction: row;
+    align-items: center;
+`;
 
 const StatItem = styled.View`
-  flex-direction: row;
-  align-items: center;
-  margin-right: 16px;
-`
+    flex-direction: row;
+    align-items: center;
+    margin-right: 16px;
+`;
 
 const StatText = styled.Text`
-  font-size: 14px;
-  color: ${colors.gray300};
-  margin-left: 4px;
-`
+    font-size: 14px;
+    color: ${colors.gray300};
+    margin-left: 4px;
+`;
 
-const StatNumber = styled.Text`
-  color: ${colors.gray100};
-  font-size: 16px;
-  font-weight: bold;
-`
+const Modal = styled.View`
+    flex: 1;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+`;
 
-const SearchContainer = styled.View`
-  padding: 8px 16px;
-  background-color: ${colors.secondary};
-  border-radius: 8px;
-  flex-direction: row;
-  align-items: center;
-  margin-bottom: 16px;
+const ModalContent = styled.View`
+    background-color: ${colors.backgroundLight};
+    padding: 20px;
+    border-radius: 8px;
+    width: 100%;
+`;
+
+const ModalTitle = styled.Text`
+    font-size: 20px;
+    font-weight: bold;
+    color: ${colors.gray100};
+    margin-bottom: 16px;
+    text-align: center;
+`;
+
+const Input = styled.TextInput`
+    background-color: ${colors.backgroundDark};
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    color: ${colors.gray100};
+    font-size: 16px;
+`;
+
+const ButtonsContainer = styled.View`
+    flex-direction: row;
+    justify-content: space-between;
+    margin-top: 8px;
+`;
+
+const Button = styled.TouchableOpacity<{ variant?: 'primary' | 'secondary' | 'danger' }>`
+    background-color: ${props => {
+        switch (props.variant) {
+            case 'primary':
+                return colors.accent;
+            case 'danger':
+                return colors.error;
+            default:
+                return colors.gray700;
+        }
+    }};
+    padding: 16px;
+    border-radius: 8px;
+    flex: 1;
+    margin-horizontal: 4px;
+`;
+
+const ButtonText = styled.Text`
+    color: ${colors.gray100};
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+`;
+
+const LoadingContainer = styled.View`
+    flex: 1;
+    justify-content: center;
+    align-items: center;
+`;
+
+const EmptyContainer = styled.View`
+    flex: 1;
+    justify-content: center;
+    align-items: center;
+`;
+
+const EmptyText = styled.Text`
+    color: ${colors.gray300};
+    font-size: 16px;
+    text-align: center;
+    margin-top: 16px;
+`;
+
+const FAB = styled.TouchableOpacity`
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    width: 56px;
+    height: 56px;
+    border-radius: 28px;
+    background-color: ${colors.accent};
+    align-items: center;
+    justify-content: center;
+    elevation: 5;
 `;
 
 export default function Comunidades() {
-    const communities = [
-        {
-            id: 1,
-            name: "CS Masters",
-            game: "Counter-Strike 2",
-            members: 45,
-            tournaments: 3,
-            matches: 12
-        },
-        {
-            id: 2,
-            name: "League Legends",
-            game: "League of Legends",
-            members: 78,
-            tournaments: 5,
-            matches: 25
-        },
-        {
-            id: 3,
-            name: "Valorant Elite",
-            game: "Valorant",
-            members: 33,
-            tournaments: 2,
-            matches: 8
+    const [communities, setCommunities] = useState<Community[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [showModal, setShowModal] = useState(false);
+    const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
+    const [formData, setFormData] = useState({
+        name: '',
+        description: ''
+    });
+
+    const loadCommunities = async () => {
+        try {
+            const { data, error } = await communityService.listCommunities();
+            if (error) throw error;
+            setCommunities(data || []);
+        } catch (error) {
+            console.error('Erro ao carregar comunidades:', error);
+            Alert.alert('Erro', 'Não foi possível carregar as comunidades');
+        } finally {
+            setLoading(false);
         }
-    ]
+    };
 
-    const fabActions = [
-        {
-            icon: "account-group-outline",
-            label: "Nova Comunidade",
-            onPress: () => console.log("Nova Comunidade"),
-        },
-    ];
+    const handleSave = async () => {
+        if (!formData.name.trim()) {
+            Alert.alert('Erro', 'O nome da comunidade é obrigatório');
+            return;
+        }
 
-    return (
-        <SlideTransition>
+        try {
+            if (selectedCommunity) {
+                const { error } = await communityService.updateCommunity(selectedCommunity.id, {
+                    name: formData.name.trim(),
+                    description: formData.description.trim()
+                });
+                if (error) throw error;
+                Alert.alert('Sucesso', 'Comunidade atualizada com sucesso');
+            } else {
+                const { error } = await communityService.createCommunity({
+                    name: formData.name.trim(),
+                    description: formData.description.trim()
+                });
+                if (error) throw error;
+                Alert.alert('Sucesso', 'Comunidade criada com sucesso');
+            }
+
+            setFormData({ name: '', description: '' });
+            setSelectedCommunity(null);
+            setShowModal(false);
+            loadCommunities();
+        } catch (error) {
+            console.error('Erro ao salvar comunidade:', error);
+            Alert.alert('Erro', 'Não foi possível salvar a comunidade');
+        }
+    };
+
+    const handleEdit = (community: Community) => {
+        setSelectedCommunity(community);
+        setFormData({
+            name: community.name,
+            description: community.description
+        });
+        setShowModal(true);
+    };
+
+    const handleDelete = (community: Community) => {
+        Alert.alert(
+            'Confirmar exclusão',
+            `Deseja realmente excluir a comunidade ${community.name}?`,
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                    text: 'Excluir',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const { error } = await communityService.deleteCommunity(community.id);
+                            if (error) throw error;
+                            Alert.alert('Sucesso', 'Comunidade excluída com sucesso');
+                            loadCommunities();
+                        } catch (error) {
+                            console.error('Erro ao excluir comunidade:', error);
+                            Alert.alert('Erro', 'Não foi possível excluir a comunidade');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleAddNew = () => {
+        setSelectedCommunity(null);
+        setFormData({ name: '', description: '' });
+        setShowModal(true);
+    };
+
+    useEffect(() => {
+        loadCommunities();
+    }, []);
+
+    if (loading) {
+        return (
             <Container>
                 <Header title="Comunidades" onNotificationPress={() => {}} onProfilePress={() => {}} />
-                <ScrollContent>
-                    <Content>
-                        {communities.map(community => (
-                            <CommunityCard key={community.id}>
-                                <CommunityHeader>
-                                    <MaterialCommunityIcons 
-                                        name="account-group" 
-                                        size={40} 
-                                        color={colors.accent}
-                                    />
-                                    <CommunityInfo>
-                                        <CommunityName>{community.name}</CommunityName>
-                                        <CommunityGame>{community.game}</CommunityGame>
-                                        <CommunityStats>
-                                            <StatItem>
-                                                <StatNumber>{community.members}</StatNumber>
-                                                <StatText>Membros</StatText>
-                                            </StatItem>
-                                            <StatItem>
-                                                <StatNumber>{community.tournaments}</StatNumber>
-                                                <StatText>Torneios</StatText>
-                                            </StatItem>
-                                            <StatItem>
-                                                <StatNumber>{community.matches}</StatNumber>
-                                                <StatText>Partidas</StatText>
-                                            </StatItem>
-                                        </CommunityStats>
-                                    </CommunityInfo>
-                                </CommunityHeader>
-                            </CommunityCard>
-                        ))}
-                    </Content>
-                </ScrollContent>
-
-                <FloatingButton actions={fabActions} />
+                <LoadingContainer>
+                    <ActivityIndicator size="large" color={colors.accent} />
+                </LoadingContainer>
             </Container>
-        </SlideTransition>
-    )
+        );
+    }
+
+    return (
+        <Container>
+            <Header title="Comunidades" onNotificationPress={() => {}} onProfilePress={() => {}} />
+            <ScrollContent>
+                {communities.length === 0 ? (
+                    <EmptyContainer>
+                        <MaterialCommunityIcons 
+                            name="account-group-outline" 
+                            size={48} 
+                            color={colors.gray400}
+                        />
+                        <EmptyText>
+                            Nenhuma comunidade encontrada{'\n'}
+                            Toque no + para criar
+                        </EmptyText>
+                    </EmptyContainer>
+                ) : (
+                    communities.map(community => (
+                        <CommunityCard key={community.id} onPress={() => handleEdit(community)}>
+                            <CommunityHeader>
+                                <MaterialCommunityIcons 
+                                    name="account-group" 
+                                    size={40} 
+                                    color={colors.accent}
+                                />
+                                <CommunityInfo>
+                                    <CommunityName>{community.name}</CommunityName>
+                                    <CommunityDescription>{community.description}</CommunityDescription>
+                                    <CommunityStats>
+                                        <StatItem>
+                                            <MaterialCommunityIcons 
+                                                name="account-multiple" 
+                                                size={16} 
+                                                color={colors.gray300}
+                                            />
+                                            <StatText>{community.members_count} membros</StatText>
+                                        </StatItem>
+                                        <StatItem>
+                                            <MaterialCommunityIcons 
+                                                name="cards" 
+                                                size={16} 
+                                                color={colors.gray300}
+                                            />
+                                            <StatText>{community.games_count} jogos</StatText>
+                                        </StatItem>
+                                    </CommunityStats>
+                                </CommunityInfo>
+                            </CommunityHeader>
+                        </CommunityCard>
+                    ))
+                )}
+            </ScrollContent>
+
+            <FAB onPress={handleAddNew}>
+                <MaterialCommunityIcons 
+                    name="plus" 
+                    size={24} 
+                    color={colors.secondary}
+                />
+            </FAB>
+
+            <RNModal
+                visible={showModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => {
+                    setShowModal(false);
+                    setSelectedCommunity(null);
+                    setFormData({ name: '', description: '' });
+                }}
+            >
+                <Modal>
+                    <ModalContent>
+                        <ModalTitle>
+                            {selectedCommunity ? 'Editar Comunidade' : 'Nova Comunidade'}
+                        </ModalTitle>
+                        
+                        <Input
+                            placeholder="Nome da comunidade *"
+                            value={formData.name}
+                            onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
+                            placeholderTextColor={colors.gray400}
+                        />
+                        
+                        <Input
+                            placeholder="Descrição"
+                            value={formData.description}
+                            onChangeText={(text) => setFormData(prev => ({ ...prev, description: text }))}
+                            placeholderTextColor={colors.gray400}
+                            multiline
+                            numberOfLines={3}
+                            textAlignVertical="top"
+                        />
+
+                        <ButtonsContainer>
+                            <Button 
+                                variant="secondary"
+                                onPress={() => {
+                                    setShowModal(false);
+                                    setSelectedCommunity(null);
+                                    setFormData({ name: '', description: '' });
+                                }}
+                            >
+                                <ButtonText>Cancelar</ButtonText>
+                            </Button>
+                            
+                            <Button variant="primary" onPress={handleSave}>
+                                <ButtonText>Salvar</ButtonText>
+                            </Button>
+                        </ButtonsContainer>
+                    </ModalContent>
+                </Modal>
+            </RNModal>
+        </Container>
+    );
 }
