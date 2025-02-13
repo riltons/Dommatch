@@ -1,11 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { Alert, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+    View,
+    TouchableOpacity,
+    Alert,
+    ActivityIndicator,
+    ScrollView,
+    Text
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import styled from 'styled-components/native';
 import { colors } from '@/styles/colors';
 import { Feather } from '@expo/vector-icons';
 import { gameService, Game } from '@/services/gameService';
 import { competitionService } from '@/services/competitionService';
+import { useFocusEffect } from '@react-navigation/native';
 
 interface Player {
     id: string;
@@ -19,10 +27,6 @@ export default function GameDetails() {
     const [game, setGame] = useState<Game | null>(null);
     const [team1Players, setTeam1Players] = useState<Player[]>([]);
     const [team2Players, setTeam2Players] = useState<Player[]>([]);
-
-    useEffect(() => {
-        loadGame();
-    }, []);
 
     const loadGame = async () => {
         try {
@@ -49,52 +53,23 @@ export default function GameDetails() {
         }
     };
 
-    const handleUpdateScore = async (team: 1 | 2, increment: boolean) => {
-        if (!game) return;
+    useFocusEffect(
+        useCallback(() => {
+            loadGame();
+        }, [gameId])
+    );
 
-        const team1Score = team === 1 
-            ? increment ? game.team1_score + 1 : Math.max(0, game.team1_score - 1)
-            : game.team1_score;
-
-        const team2Score = team === 2
-            ? increment ? game.team2_score + 1 : Math.max(0, game.team2_score - 1)
-            : game.team2_score;
-
+    const handleStartGame = async () => {
         try {
-            const updatedGame = await gameService.updateScore(
-                gameId as string,
-                team1Score,
-                team2Score
-            );
+            setLoading(true);
+            const updatedGame = await gameService.startGame(gameId as string);
             setGame(updatedGame);
         } catch (error) {
             console.error(error);
-            Alert.alert('Erro', 'Não foi possível atualizar o placar');
+            Alert.alert('Erro', 'Não foi possível iniciar o jogo');
+        } finally {
+            setLoading(false);
         }
-    };
-
-    const handleFinishGame = async () => {
-        if (!game) return;
-
-        Alert.alert(
-            'Finalizar Jogo',
-            'Tem certeza que deseja finalizar este jogo?',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Confirmar',
-                    onPress: async () => {
-                        try {
-                            const updatedGame = await gameService.finishGame(gameId as string);
-                            setGame(updatedGame);
-                        } catch (error) {
-                            console.error(error);
-                            Alert.alert('Erro', 'Não foi possível finalizar o jogo');
-                        }
-                    }
-                }
-            ]
-        );
     };
 
     if (loading || !game) {
@@ -104,6 +79,9 @@ export default function GameDetails() {
             </LoadingContainer>
         );
     }
+
+    const isBuchuda = game.is_buchuda;
+    const isBuchudaDeRe = game.is_buchuda_de_re;
 
     return (
         <Container>
@@ -116,63 +94,104 @@ export default function GameDetails() {
 
             <MainContent>
                 <GameStatus>
-                    {game.status === 'pending' && 'Aguardando Início'}
-                    {game.status === 'in_progress' && 'Em Andamento'}
-                    {game.status === 'finished' && 'Finalizado'}
+                    <StatusText>
+                        {game.status === 'pending' && 'Aguardando Início'}
+                        {game.status === 'in_progress' && 'Em Andamento'}
+                        {game.status === 'finished' && (
+                            <GameStatusFinished>
+                                <StatusText>Finalizado</StatusText>
+                                {isBuchuda && <BuchudaTag>Buchuda!</BuchudaTag>}
+                                {isBuchudaDeRe && <BuchudaTag>Buchuda de Ré!</BuchudaTag>}
+                                <WinnerInfo>
+                                    <WinnerText>
+                                        Vencedores:{' '}
+                                        {game.team1_score > game.team2_score ? (
+                                            <>
+                                                {team1Players.map((player, index) => (
+                                                    <Text key={player.id}>
+                                                        {player.name}
+                                                        {index < team1Players.length - 1 ? ' e ' : ''}
+                                                    </Text>
+                                                ))}
+                                            </>
+                                        ) : (
+                                            <>
+                                                {team2Players.map((player, index) => (
+                                                    <Text key={player.id}>
+                                                        {player.name}
+                                                        {index < team2Players.length - 1 ? ' e ' : ''}
+                                                    </Text>
+                                                ))}
+                                            </>
+                                        )}
+                                    </WinnerText>
+                                    <Feather name="award" size={24} color={colors.primary} />
+                                </WinnerInfo>
+                            </GameStatusFinished>
+                        )}
+                    </StatusText>
                 </GameStatus>
 
                 <ScoreContainer>
-                    <TeamContainer>
+                    <TeamContainer winner={game.status === 'finished' && game.team1_score > game.team2_score}>
                         <TeamTitle>Time 1</TeamTitle>
                         {team1Players.map(player => (
                             <PlayerName key={player.id}>{player.name}</PlayerName>
                         ))}
-                        <ScoreControls>
-                            <ScoreButton 
-                                onPress={() => handleUpdateScore(1, false)}
-                                disabled={game.status === 'finished'}
-                            >
-                                <Feather name="minus" size={24} color={colors.white} />
-                            </ScoreButton>
-                            <Score>{game.team1_score}</Score>
-                            <ScoreButton 
-                                onPress={() => handleUpdateScore(1, true)}
-                                disabled={game.status === 'finished'}
-                            >
-                                <Feather name="plus" size={24} color={colors.white} />
-                            </ScoreButton>
-                        </ScoreControls>
+                        <Score>{game.team1_score}</Score>
                     </TeamContainer>
 
                     <Versus>X</Versus>
 
-                    <TeamContainer>
+                    <TeamContainer winner={game.status === 'finished' && game.team2_score > game.team1_score}>
                         <TeamTitle>Time 2</TeamTitle>
                         {team2Players.map(player => (
                             <PlayerName key={player.id}>{player.name}</PlayerName>
                         ))}
-                        <ScoreControls>
-                            <ScoreButton 
-                                onPress={() => handleUpdateScore(2, false)}
-                                disabled={game.status === 'finished'}
-                            >
-                                <Feather name="minus" size={24} color={colors.white} />
-                            </ScoreButton>
-                            <Score>{game.team2_score}</Score>
-                            <ScoreButton 
-                                onPress={() => handleUpdateScore(2, true)}
-                                disabled={game.status === 'finished'}
-                            >
-                                <Feather name="plus" size={24} color={colors.white} />
-                            </ScoreButton>
-                        </ScoreControls>
+                        <Score>{game.team2_score}</Score>
                     </TeamContainer>
                 </ScoreContainer>
 
+                {game.status === 'pending' && (
+                    <ActionButton onPress={handleStartGame}>
+                        <ActionButtonText>Iniciar Partida</ActionButtonText>
+                    </ActionButton>
+                )}
+
                 {game.status === 'in_progress' && (
-                    <FinishButton onPress={handleFinishGame}>
-                        <FinishButtonText>Finalizar Jogo</FinishButtonText>
-                    </FinishButton>
+                    <ActionButton 
+                        onPress={() => router.push(`/comunidade/${communityId}/competicao/${competitionId}/jogo/${gameId}/registrar`)}
+                    >
+                        <ActionButtonText>Registrar Resultado</ActionButtonText>
+                    </ActionButton>
+                )}
+
+                {game.rounds.length > 0 && (
+                    <>
+                        <SectionTitle>Histórico de Rodadas</SectionTitle>
+                        {game.rounds.map((round, index) => (
+                            <RoundCard key={index}>
+                                <RoundInfo>
+                                    <RoundType>
+                                        {round.type === 'simple' && 'Vitória Simples'}
+                                        {round.type === 'carroca' && 'Vitória de Carroça'}
+                                        {round.type === 'la_e_lo' && 'Vitória de Lá-e-lô'}
+                                        {round.type === 'cruzada' && 'Vitória de Cruzada'}
+                                        {round.type === 'contagem' && 'Vitória por Contagem'}
+                                        {round.type === 'empate' && 'Empate'}
+                                    </RoundType>
+                                    {round.has_bonus && (
+                                        <BonusTag>+1 Bônus</BonusTag>
+                                    )}
+                                </RoundInfo>
+                                {round.type !== 'empate' && (
+                                    <RoundWinnerText>
+                                        Vencedor: Time {round.winner_team}
+                                    </RoundWinnerText>
+                                )}
+                            </RoundCard>
+                        ))}
+                    </>
                 )}
             </MainContent>
         </Container>
@@ -214,12 +233,55 @@ const MainContent = styled.View`
     padding: 20px;
 `;
 
-const GameStatus = styled.Text`
-    font-size: 18px;
-    color: ${colors.primary};
-    text-align: center;
+const GameStatus = styled.View`
     margin-bottom: 24px;
+`;
+
+const GameStatusFinished = styled.View`
+    align-items: center;
+`;
+
+const StatusText = styled.Text`
+    font-size: 18px;
     font-weight: bold;
+    color: ${colors.gray100};
+    margin-bottom: 8px;
+`;
+
+const BuchudaTag = styled.Text`
+    font-size: 16px;
+    color: ${colors.primary};
+    font-weight: bold;
+    margin-bottom: 8px;
+`;
+
+const WinnerInfo = styled.View`
+    flex-direction: row;
+    align-items: center;
+    background-color: ${colors.secondary};
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-top: 8px;
+`;
+
+const WinnerText = styled.Text`
+    font-size: 16px;
+    color: ${colors.gray100};
+    margin-right: 12px;
+`;
+
+const RoundWinnerText = styled.Text`
+    font-size: 14px;
+    color: ${colors.gray300};
+`;
+
+const TeamContainer = styled.View<{ winner?: boolean }>`
+    flex: 1;
+    align-items: center;
+    background-color: ${props => props.winner ? colors.secondary : 'transparent'};
+    padding: ${props => props.winner ? '16px' : '0px'};
+    border-radius: ${props => props.winner ? '8px' : '0px'};
+    border: ${props => props.winner ? `2px solid ${colors.primary}` : 'none'};
 `;
 
 const ScoreContainer = styled.View`
@@ -227,11 +289,6 @@ const ScoreContainer = styled.View`
     align-items: center;
     justify-content: space-between;
     margin-bottom: 32px;
-`;
-
-const TeamContainer = styled.View`
-    flex: 1;
-    align-items: center;
 `;
 
 const TeamTitle = styled.Text`
@@ -247,27 +304,11 @@ const PlayerName = styled.Text`
     margin-bottom: 8px;
 `;
 
-const ScoreControls = styled.View`
-    flex-direction: row;
-    align-items: center;
-    margin-top: 16px;
-`;
-
-const ScoreButton = styled.TouchableOpacity`
-    width: 40px;
-    height: 40px;
-    background-color: ${colors.primary};
-    border-radius: 20px;
-    align-items: center;
-    justify-content: center;
-    opacity: ${props => props.disabled ? 0.5 : 1};
-`;
-
 const Score = styled.Text`
-    font-size: 32px;
+    font-size: 48px;
     font-weight: bold;
     color: ${colors.gray100};
-    margin-horizontal: 16px;
+    margin-top: 16px;
 `;
 
 const Versus = styled.Text`
@@ -277,17 +318,51 @@ const Versus = styled.Text`
     margin-horizontal: 16px;
 `;
 
-const FinishButton = styled.TouchableOpacity`
+const ActionButton = styled.TouchableOpacity`
     background-color: ${colors.primary};
     padding: 16px;
     border-radius: 8px;
     align-items: center;
     justify-content: center;
-    margin-top: auto;
+    margin-top: 32px;
 `;
 
-const FinishButtonText = styled.Text`
+const ActionButtonText = styled.Text`
     color: ${colors.white};
     font-size: 16px;
     font-weight: bold;
+`;
+
+const SectionTitle = styled.Text`
+    font-size: 18px;
+    font-weight: bold;
+    color: ${colors.gray100};
+    margin-top: 32px;
+    margin-bottom: 16px;
+`;
+
+const RoundCard = styled.View`
+    background-color: ${colors.secondary};
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 8px;
+`;
+
+const RoundInfo = styled.View`
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 8px;
+`;
+
+const RoundType = styled.Text`
+    font-size: 16px;
+    color: ${colors.gray100};
+    font-weight: bold;
+`;
+
+const BonusTag = styled.Text`
+    font-size: 14px;
+    color: ${colors.primary};
+    font-weight: bold;
+    margin-left: 8px;
 `;

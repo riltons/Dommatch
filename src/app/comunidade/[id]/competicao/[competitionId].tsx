@@ -27,13 +27,13 @@ interface CompetitionMember {
 export default function CompetitionDetails() {
     const router = useRouter();
     const { id: communityId, competitionId } = useLocalSearchParams();
-    const [competition, setCompetition] = useState<Competition | null>(null);
-    const [members, setMembers] = useState<CompetitionMember[]>([]);
-    const [communityMembers, setCommunityMembers] = useState<any[]>([]);
-    const [games, setGames] = useState<Game[]>([]);
+    const [competition, setCompetition] = useState<any>(null);
+    const [games, setGames] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [members, setMembers] = useState<any[]>([]);
+    const [isMembersExpanded, setIsMembersExpanded] = useState(false);
+    const [communityMembers, setCommunityMembers] = useState<any[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
-    const [showMembers, setShowMembers] = useState(true);
 
     useEffect(() => {
         loadCompetitionAndMembers();
@@ -188,9 +188,9 @@ export default function CompetitionDetails() {
                 <SectionHeader>
                     <SectionTitle>Membros ({members.length})</SectionTitle>
                     <ButtonsContainer>
-                        <ToggleButton onPress={() => setShowMembers(!showMembers)}>
+                        <ToggleButton onPress={() => setIsMembersExpanded(!isMembersExpanded)}>
                             <Feather 
-                                name={showMembers ? "chevron-up" : "chevron-down"} 
+                                name={isMembersExpanded ? "chevron-up" : "chevron-down"} 
                                 size={20} 
                                 color={colors.gray100} 
                             />
@@ -202,7 +202,7 @@ export default function CompetitionDetails() {
                     </ButtonsContainer>
                 </SectionHeader>
 
-                {showMembers && (
+                {isMembersExpanded && (
                     <MembersList
                         data={members}
                         keyExtractor={(item) => item.id}
@@ -269,6 +269,10 @@ export default function CompetitionDetails() {
                     </ModalContent>
                 </ModalContainer>
             </Modal>
+
+            <NewGameButton onPress={() => router.push(`/comunidade/${communityId}/competicao/${competitionId}/jogo/novo`)}>
+                <Feather name="plus" size={24} color={colors.white} />
+            </NewGameButton>
         </Container>
     );
 }
@@ -529,13 +533,14 @@ const GameStatus = styled.Text`
 
 const NewGameButton = styled.TouchableOpacity`
     position: absolute;
-    right: 16px;
-    bottom: 16px;
+    bottom: 32px;
+    right: 32px;
     width: 56px;
     height: 56px;
     border-radius: 28px;
     background-color: ${colors.primary};
     align-items: center;
     justify-content: center;
-    elevation: 4;
+    elevation: 8;
+    z-index: 999;
 `;

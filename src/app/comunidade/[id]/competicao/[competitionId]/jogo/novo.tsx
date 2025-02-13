@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, ActivityIndicator } from 'react-native';
+import {
+    View,
+    TouchableOpacity,
+    ActivityIndicator,
+    Alert,
+    ScrollView
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import styled from 'styled-components/native';
 import { colors } from '@/styles/colors';

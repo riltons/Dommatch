@@ -1,5 +1,19 @@
 import { supabase } from '@/lib/supabase';
 
+export type VictoryType = 
+    | 'simple' // 1 ponto
+    | 'carroca' // 2 pontos
+    | 'la_e_lo' // 3 pontos
+    | 'cruzada' // 4 pontos
+    | 'contagem' // 1 ponto
+    | 'empate'; // 0 ponto + 1 na próxima
+
+export interface GameRound {
+    type: VictoryType;
+    winner_team: 1 | 2 | null;
+    has_bonus: boolean;
+}
+
 export interface Game {
     id: string;
     competition_id: string;
@@ -9,6 +23,10 @@ export interface Game {
     created_at: string;
     team1: string[];
     team2: string[];
+    rounds: GameRound[];
+    last_round_was_tie: boolean;
+    team1_was_losing_5_0: boolean;
+    team2_was_losing_5_0: boolean;
 }
 
 export interface CreateGameDTO {
@@ -30,7 +48,11 @@ export const gameService = {
                     ...data,
                     team1_score: 0,
                     team2_score: 0,
-                    status: 'pending'
+                    status: 'pending',
+                    rounds: [],
+                    last_round_was_tie: false,
+                    team1_was_losing_5_0: false,
+                    team2_was_losing_5_0: false
                 }])
                 .select()
                 .single();
@@ -42,6 +64,121 @@ export const gameService = {
             return newGame;
         } catch (error) {
             console.error('Erro ao criar jogo:', error);
+            throw error;
+        }
+    },
+
+    async startGame(id: string) {
+        try {
+            const { data, error } = await supabase
+                .from('games')
+                .update({
+                    status: 'in_progress'
+                })
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Erro ao iniciar jogo:', error);
+            throw error;
+        }
+    },
+
+    async registerRound(id: string, type: VictoryType, winnerTeam: 1 | 2 | null) {
+        try {
+            const { data: game, error: getError } = await supabase
+                .from('games')
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (getError) throw getError;
+
+            const hasBonus = game.last_round_was_tie;
+            let team1Score = game.team1_score;
+            let team2Score = game.team2_score;
+            let team1WasLosing5_0 = game.team1_was_losing_5_0;
+            let team2WasLosing5_0 = game.team2_was_losing_5_0;
+            
+            // Calcula pontos baseado no tipo de vitória
+            let points = 0;
+            switch (type) {
+                case 'simple':
+                case 'contagem':
+                    points = 1;
+                    break;
+                case 'carroca':
+                    points = 2;
+                    break;
+                case 'la_e_lo':
+                    points = 3;
+                    break;
+                case 'cruzada':
+                    points = 4;
+                    break;
+                case 'empate':
+                    points = 0;
+                    break;
+            }
+
+            // Adiciona bônus se a última rodada foi empate
+            if (hasBonus && type !== 'empate') {
+                points += 1;
+            }
+
+            // Atualiza o placar
+            if (winnerTeam === 1) {
+                team1Score += points;
+            } else if (winnerTeam === 2) {
+                team2Score += points;
+            }
+
+            // Verifica se algum time está em desvantagem de 5x0
+            if (team1Score === 0 && team2Score === 5) {
+                team1WasLosing5_0 = true;
+            }
+            if (team2Score === 0 && team1Score === 5) {
+                team2WasLosing5_0 = true;
+            }
+
+            // Verifica se é uma buchuda (vencer sem que o adversário pontue)
+            const isBuchuda = (team1Score >= 6 && team2Score === 0) || (team2Score >= 6 && team1Score === 0);
+            
+            // Verifica se é uma buchuda de ré (time que estava perdendo de 5x0 venceu)
+            const isBuchudaDeRe = 
+                (team1Score >= 6 && team1WasLosing5_0) || 
+                (team2Score >= 6 && team2WasLosing5_0);
+
+            const newRound: GameRound = {
+                type,
+                winner_team: winnerTeam,
+                has_bonus: hasBonus
+            };
+
+            const { data: updatedGame, error: updateError } = await supabase
+                .from('games')
+                .update({
+                    team1_score: team1Score,
+                    team2_score: team2Score,
+                    rounds: [...game.rounds, newRound],
+                    last_round_was_tie: type === 'empate',
+                    status: (team1Score >= 6 || team2Score >= 6) ? 'finished' : 'in_progress',
+                    is_buchuda: isBuchuda,
+                    is_buchuda_de_re: isBuchudaDeRe,
+                    team1_was_losing_5_0: team1WasLosing5_0,
+                    team2_was_losing_5_0: team2WasLosing5_0
+                })
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (updateError) throw updateError;
+            return updatedGame;
+        } catch (error) {
+            console.error('Erro ao registrar rodada:', error);
             throw error;
         }
     },
@@ -82,46 +219,6 @@ export const gameService = {
             return data;
         } catch (error) {
             console.error('Erro ao buscar jogo:', error);
-            throw error;
-        }
-    },
-
-    async updateScore(id: string, team1Score: number, team2Score: number) {
-        try {
-            const { data, error } = await supabase
-                .from('games')
-                .update({
-                    team1_score: team1Score,
-                    team2_score: team2Score,
-                    status: 'in_progress'
-                })
-                .eq('id', id)
-                .select()
-                .single();
-
-            if (error) throw error;
-            return data;
-        } catch (error) {
-            console.error('Erro ao atualizar placar:', error);
-            throw error;
-        }
-    },
-
-    async finishGame(id: string) {
-        try {
-            const { data, error } = await supabase
-                .from('games')
-                .update({
-                    status: 'finished'
-                })
-                .eq('id', id)
-                .select()
-                .single();
-
-            if (error) throw error;
-            return data;
-        } catch (error) {
-            console.error('Erro ao finalizar jogo:', error);
             throw error;
         }
     }

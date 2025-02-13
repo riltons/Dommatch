@@ -181,4 +181,20 @@ export const competitionService = {
             throw error;
         }
     },
+
+    async getPlayerById(playerId: string) {
+        try {
+            const { data, error } = await supabase
+                .from('players')
+                .select('*')
+                .eq('id', playerId)
+                .single();
+
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Erro ao buscar jogador:', error);
+            throw error;
+        }
+    },
 };
