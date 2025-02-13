@@ -97,7 +97,7 @@ export default function Jogadores() {
         <Container>
             <Header title="Jogadores" onNotificationPress={() => {}} onProfilePress={() => {}} />
 
-            <AddButton onPress={() => router.push('/jogadores/new')}>
+            <AddButton onPress={() => router.push('/jogador/novo')}>
                 <Feather name="plus" size={24} color={colors.white} />
             </AddButton>
 
