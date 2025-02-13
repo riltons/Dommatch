@@ -51,6 +51,7 @@ export default function CommunityDetails() {
     const [showMembers, setShowMembers] = useState(false);
     const [rotateAnim] = useState(new Animated.Value(0));
     const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
+    const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
 
     const toggleMembers = () => {
         setShowMembers(!showMembers);
@@ -151,6 +152,41 @@ export default function CommunityDetails() {
         }
     };
 
+    const handleSelectMember = (memberId: string) => {
+        setSelectedMembers(prev => {
+            if (prev.includes(memberId)) {
+                return prev.filter(id => id !== memberId);
+            }
+            return [...prev, memberId];
+        });
+    };
+
+    const handleSelectAllMembers = () => {
+        if (selectedMembers.length === members.length) {
+            setSelectedMembers([]);
+        } else {
+            setSelectedMembers(members.map(member => member.player_id));
+        }
+    };
+
+    const handleRemoveMembers = async () => {
+        if (!community || selectedMembers.length === 0) return;
+
+        try {
+            setLoading(true);
+            for (const memberId of selectedMembers) {
+                await communityMembersService.removeMember(community.id, memberId);
+            }
+            setSelectedMembers([]);
+            await loadData();
+        } catch (error) {
+            console.error(error);
+            Alert.alert('Erro', 'Não foi possível remover os membros');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     if (loading || !community) {
         return (
             <Container>
@@ -195,28 +231,59 @@ export default function CommunityDetails() {
 
                     {showMembers && (
                         <MembersListContainer>
-                            <MembersList
-                                data={members}
-                                keyExtractor={(item) => item.id}
-                                renderItem={({ item }) => (
-                                    <MemberCard>
-                                        <MemberInfo>
-                                            <MemberName>{item.players.name}</MemberName>
-                                        </MemberInfo>
-                                        <TouchableOpacity 
-                                            onPress={() => handleToggleMember(item.player_id, true)}
-                                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            <SelectAllHeader>
+                                <SelectAllButton onPress={handleSelectAllMembers}>
+                                    <Feather 
+                                        name={selectedMembers.length === members.length ? "check-square" : "square"} 
+                                        size={24} 
+                                        color={colors.primary} 
+                                    />
+                                    <SelectAllText>Selecionar Todos</SelectAllText>
+                                </SelectAllButton>
+                            </SelectAllHeader>
+
+                            <MembersListScrollView>
+                                <MembersList
+                                    data={members}
+                                    keyExtractor={(item) => item.id}
+                                    renderItem={({ item }) => (
+                                        <MemberCard 
+                                            onPress={() => handleSelectMember(item.player_id)}
+                                            selected={selectedMembers.includes(item.player_id)}
                                         >
-                                            <Feather name="user-minus" size={20} color={colors.error} />
-                                        </TouchableOpacity>
-                                    </MemberCard>
-                                )}
-                                ListEmptyComponent={
-                                    <EmptyContainer>
-                                        <EmptyText>Nenhum membro encontrado</EmptyText>
-                                    </EmptyContainer>
-                                }
-                            />
+                                            <MemberInfo>
+                                                <MemberName>{item.players.name}</MemberName>
+                                            </MemberInfo>
+                                            <Feather 
+                                                name={selectedMembers.includes(item.player_id) ? "check-square" : "square"} 
+                                                size={24} 
+                                                color={selectedMembers.includes(item.player_id) ? colors.primary : colors.gray300} 
+                                            />
+                                        </MemberCard>
+                                    )}
+                                    ListEmptyComponent={
+                                        <EmptyContainer>
+                                            <EmptyText>Nenhum membro encontrado</EmptyText>
+                                        </EmptyContainer>
+                                    }
+                                    scrollEnabled={false}
+                                />
+                            </MembersListScrollView>
+
+                            {selectedMembers.length > 0 && (
+                                <RemoveButton 
+                                    onPress={handleRemoveMembers}
+                                    disabled={loading}
+                                >
+                                    {loading ? (
+                                        <ActivityIndicator color={colors.white} />
+                                    ) : (
+                                        <RemoveButtonText>
+                                            Remover {selectedMembers.length} {selectedMembers.length === 1 ? 'membro' : 'membros'}
+                                        </RemoveButtonText>
+                                    )}
+                                </RemoveButton>
+                            )}
                         </MembersListContainer>
                     )}
                 </MembersSection>
@@ -447,16 +514,20 @@ const MembersListContainer = styled.View`
     padding: 12px;
 `;
 
+const MembersListScrollView = styled.ScrollView`
+    max-height: 300px;
+`;
+
 const MembersList = styled.FlatList`
     flex-grow: 0;
 `;
 
-const MemberCard = styled.View`
+const MemberCard = styled.TouchableOpacity<{ selected: boolean }>`
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
     padding: 12px;
-    background-color: ${colors.backgroundDark};
+    background-color: ${props => props.selected ? colors.error + '20' : colors.backgroundDark};
     border-radius: 8px;
     margin-bottom: 8px;
 `;
@@ -674,4 +745,20 @@ const SelectAllText = styled.Text`
 const ExpandButton = styled.TouchableOpacity`
     padding: 4px;
     margin-left: 8px;
+`;
+
+const RemoveButton = styled.TouchableOpacity<{ disabled?: boolean }>`
+    background-color: ${colors.error};
+    padding: 16px;
+    border-radius: 8px;
+    align-items: center;
+    justify-content: center;
+    opacity: ${props => props.disabled ? 0.7 : 1};
+    margin-top: 16px;
+`;
+
+const RemoveButtonText = styled.Text`
+    color: ${colors.white};
+    font-size: 16px;
+    font-weight: bold;
 `;
