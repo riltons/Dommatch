@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Modal, TouchableOpacity } from 'react-native';
+import { Alert, Modal, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import styled from 'styled-components/native';
 import { colors } from '@/styles/colors';
 import { Feather } from '@expo/vector-icons';
 import { communityService } from '@/services/communityService';
 import { communityMembersService } from '@/services/communityMembersService';
-import { useAuth } from '@/hooks/useAuth';
-import { PlayersList } from '@/components/PlayersList';
+import { playersService } from '@/services/playersService';
 
 type Community = {
     id: string;
@@ -26,12 +25,17 @@ type Member = {
     };
 };
 
+type Player = {
+    id: string;
+    name: string;
+};
+
 export default function CommunityDetails() {
     const router = useRouter();
     const params = useLocalSearchParams();
-    const { user } = useAuth();
     const [community, setCommunity] = useState<Community | null>(null);
     const [members, setMembers] = useState<Member[]>([]);
+    const [allPlayers, setAllPlayers] = useState<Player[]>([]);
     const [loading, setLoading] = useState(true);
     const [modalVisible, setModalVisible] = useState(false);
 
@@ -42,13 +46,15 @@ export default function CommunityDetails() {
     const loadCommunityAndMembers = async () => {
         try {
             const communityId = params.id as string;
-            const [communityData, membersData] = await Promise.all([
+            const [communityData, membersData, playersData] = await Promise.all([
                 communityService.getCommunity(communityId),
-                communityMembersService.listMembers(communityId)
+                communityMembersService.listMembers(communityId),
+                playersService.listPlayers()
             ]);
 
             setCommunity(communityData);
             setMembers(membersData);
+            setAllPlayers(playersData.data || []);
         } catch (error) {
             Alert.alert('Erro', 'Erro ao carregar dados da comunidade');
             console.error(error);
@@ -57,36 +63,33 @@ export default function CommunityDetails() {
         }
     };
 
-    const handleAddMember = async (playerId: string) => {
+    const handleToggleMember = async (playerId: string, isCurrentMember: boolean) => {
         if (!community) return;
         
         try {
-            await communityMembersService.addMember(community.id, playerId);
+            setLoading(true);
+            if (isCurrentMember) {
+                await communityMembersService.removeMember(community.id, playerId);
+                Alert.alert('Sucesso', 'Jogador removido da comunidade');
+            } else {
+                await communityMembersService.addMember(community.id, playerId);
+                Alert.alert('Sucesso', 'Jogador adicionado à comunidade');
+            }
             await loadCommunityAndMembers();
-            Alert.alert('Sucesso', 'Jogador adicionado à comunidade');
-        } catch (error) {
-            Alert.alert('Erro', 'Erro ao adicionar jogador');
+        } catch (error: any) {
+            Alert.alert('Erro', error?.message || 'Erro ao gerenciar membro');
             console.error(error);
-        }
-    };
-
-    const handleRemoveMember = async (playerId: string) => {
-        if (!community) return;
-
-        try {
-            await communityMembersService.removeMember(community.id, playerId);
-            await loadCommunityAndMembers();
-            Alert.alert('Sucesso', 'Jogador removido da comunidade');
-        } catch (error) {
-            Alert.alert('Erro', 'Erro ao remover jogador');
-            console.error(error);
+        } finally {
+            setLoading(false);
         }
     };
 
     if (loading || !community) {
         return (
             <Container>
-                <LoadingText>Carregando...</LoadingText>
+                <LoadingContainer>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                </LoadingContainer>
             </Container>
         );
     }
@@ -109,9 +112,6 @@ export default function CommunityDetails() {
 
                 <SectionHeader>
                     <SectionTitle>Membros ({members.length})</SectionTitle>
-                    <TouchableOpacity onPress={() => setModalVisible(true)}>
-                        <Feather name="user-plus" size={24} color={colors.primary} />
-                    </TouchableOpacity>
                 </SectionHeader>
 
                 <MembersList
@@ -122,9 +122,6 @@ export default function CommunityDetails() {
                             <MemberInfo>
                                 <MemberName>{item.players.name}</MemberName>
                             </MemberInfo>
-                            <TouchableOpacity onPress={() => handleRemoveMember(item.player_id)}>
-                                <Feather name="user-minus" size={24} color={colors.error} />
-                            </TouchableOpacity>
                         </MemberCard>
                     )}
                     ListEmptyComponent={
@@ -135,6 +132,10 @@ export default function CommunityDetails() {
                 />
             </Content>
 
+            <FAB onPress={() => setModalVisible(true)}>
+                <Feather name="users" size={24} color={colors.gray100} />
+            </FAB>
+
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -144,18 +145,35 @@ export default function CommunityDetails() {
                 <ModalContainer>
                     <ModalContent>
                         <ModalHeader>
-                            <ModalTitle>Adicionar Membro</ModalTitle>
+                            <ModalTitle>Gerenciar Membros</ModalTitle>
                             <TouchableOpacity onPress={() => setModalVisible(false)}>
                                 <Feather name="x" size={24} color={colors.gray100} />
                             </TouchableOpacity>
                         </ModalHeader>
 
                         <PlayersList
-                            excludeIds={members.map(m => m.player_id)}
-                            onSelectPlayer={(playerId) => {
-                                handleAddMember(playerId);
-                                setModalVisible(false);
+                            data={allPlayers}
+                            keyExtractor={(item) => item.id}
+                            renderItem={({ item }) => {
+                                const isCurrentMember = members.some(m => m.player_id === item.id);
+                                return (
+                                    <PlayerCard onPress={() => handleToggleMember(item.id, isCurrentMember)}>
+                                        <PlayerInfo>
+                                            <PlayerName>{item.name}</PlayerName>
+                                        </PlayerInfo>
+                                        <Feather 
+                                            name={isCurrentMember ? "user-minus" : "user-plus"} 
+                                            size={24} 
+                                            color={isCurrentMember ? colors.error : colors.primary} 
+                                        />
+                                    </PlayerCard>
+                                );
                             }}
+                            ListEmptyComponent={
+                                <EmptyContainer>
+                                    <EmptyText>Nenhum jogador encontrado</EmptyText>
+                                </EmptyContainer>
+                            }
                         />
                     </ModalContent>
                 </ModalContainer>
@@ -167,6 +185,12 @@ export default function CommunityDetails() {
 const Container = styled.View`
     flex: 1;
     background-color: ${colors.backgroundDark};
+`;
+
+const LoadingContainer = styled.View`
+    flex: 1;
+    justify-content: center;
+    align-items: center;
 `;
 
 const PageHeader = styled.View`
@@ -237,26 +261,6 @@ const MemberName = styled.Text`
     font-weight: 500;
 `;
 
-const LoadingText = styled.Text`
-    color: ${colors.gray100};
-    font-size: 16px;
-    text-align: center;
-    margin-top: 20px;
-`;
-
-const EmptyContainer = styled.View`
-    flex: 1;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-`;
-
-const EmptyText = styled.Text`
-    color: ${colors.gray300};
-    font-size: 16px;
-    text-align: center;
-`;
-
 const ModalContainer = styled.View`
     flex: 1;
     background-color: rgba(0, 0, 0, 0.5);
@@ -282,4 +286,58 @@ const ModalTitle = styled.Text`
     font-size: 20px;
     font-weight: bold;
     color: ${colors.gray100};
+`;
+
+const PlayersList = styled.FlatList`
+    flex: 1;
+`;
+
+const PlayerCard = styled.TouchableOpacity`
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background-color: ${colors.secondary};
+    border-radius: 8px;
+    margin-bottom: 8px;
+`;
+
+const PlayerInfo = styled.View`
+    flex: 1;
+`;
+
+const PlayerName = styled.Text`
+    font-size: 16px;
+    color: ${colors.gray100};
+    font-weight: 500;
+`;
+
+const EmptyContainer = styled.View`
+    flex: 1;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+`;
+
+const EmptyText = styled.Text`
+    color: ${colors.gray300};
+    font-size: 16px;
+    text-align: center;
+`;
+
+const FAB = styled.TouchableOpacity`
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    width: 56px;
+    height: 56px;
+    border-radius: 28px;
+    background-color: ${colors.primary};
+    align-items: center;
+    justify-content: center;
+    elevation: 5;
+    shadow-color: ${colors.primary};
+    shadow-offset: 0px 2px;
+    shadow-opacity: 0.25;
+    shadow-radius: 3.84px;
 `;

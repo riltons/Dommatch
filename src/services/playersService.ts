@@ -4,17 +4,17 @@ export const playersService = {
     async listPlayers() {
         const { data, error } = await supabase
             .from('players')
-            .select('id, name, avatar_url')
+            .select('id, name')
             .order('name');
 
         if (error) throw error;
-        return data;
+        return { data, error: null };
     },
 
     async getPlayer(id: string) {
         const { data, error } = await supabase
             .from('players')
-            .select('id, name, avatar_url')
+            .select('id, name')
             .eq('id', id)
             .single();
 
@@ -22,12 +22,10 @@ export const playersService = {
         return data;
     },
 
-    async createPlayer(name: string, avatarUrl?: string) {
+    async createPlayer(name: string) {
         const { data, error } = await supabase
             .from('players')
-            .insert([
-                { name, avatar_url: avatarUrl }
-            ])
+            .insert([{ name }])
             .select()
             .single();
 
@@ -35,10 +33,10 @@ export const playersService = {
         return data;
     },
 
-    async updatePlayer(id: string, name: string, avatarUrl?: string) {
+    async updatePlayer(id: string, name: string) {
         const { data, error } = await supabase
             .from('players')
-            .update({ name, avatar_url: avatarUrl })
+            .update({ name })
             .eq('id', id)
             .select()
             .single();
