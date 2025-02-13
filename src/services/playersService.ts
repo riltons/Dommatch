@@ -1,14 +1,19 @@
 import { supabase } from '@/lib/supabase';
 
 export const playersService = {
-    async listPlayers() {
-        const { data, error } = await supabase
-            .from('players')
-            .select('id, name')
-            .order('name');
+    async list() {
+        try {
+            const { data, error } = await supabase
+                .from('players')
+                .select('*')
+                .order('name');
 
-        if (error) throw error;
-        return { data, error: null };
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Erro ao listar jogadores:', error);
+            throw error;
+        }
     },
 
     async getPlayer(id: string) {

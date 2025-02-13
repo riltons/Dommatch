@@ -7,6 +7,7 @@ import { Feather } from '@expo/vector-icons';
 import { communityService } from '@/services/communityService';
 import { communityMembersService } from '@/services/communityMembersService';
 import { playersService } from '@/services/playersService';
+import { competitionService } from '@/services/competitionService';
 
 type Community = {
     id: string;
@@ -30,12 +31,19 @@ type Player = {
     name: string;
 };
 
+type Competition = {
+    id: string;
+    name: string;
+    description: string;
+};
+
 export default function CommunityDetails() {
     const router = useRouter();
     const params = useLocalSearchParams();
     const [community, setCommunity] = useState<Community | null>(null);
     const [members, setMembers] = useState<Member[]>([]);
     const [allPlayers, setAllPlayers] = useState<Player[]>([]);
+    const [competitions, setCompetitions] = useState<Competition[]>([]);
     const [loading, setLoading] = useState(true);
     const [modalVisible, setModalVisible] = useState(false);
     const [showMembers, setShowMembers] = useState(false);
@@ -60,18 +68,17 @@ export default function CommunityDetails() {
 
     const loadCommunityAndMembers = async () => {
         try {
-            const communityId = params.id as string;
-            const [communityData, membersData, playersData] = await Promise.all([
-                communityService.getCommunity(communityId),
-                communityMembersService.listMembers(communityId),
-                playersService.listPlayers()
-            ]);
+            setLoading(true);
+            const communityData = await communityService.getById(params.id as string);
+            const membersData = await communityMembersService.listMembers(params.id as string);
+            const playersData = await playersService.list();
+            const competitionsData = await competitionService.listByCommunity(params.id as string);
 
             setCommunity(communityData);
             setMembers(membersData);
-            setAllPlayers(playersData.data || []);
+            setAllPlayers(playersData);
+            setCompetitions(competitionsData);
         } catch (error) {
-            Alert.alert('Erro', 'Erro ao carregar dados da comunidade');
             console.error(error);
         } finally {
             setLoading(false);
@@ -115,7 +122,7 @@ export default function CommunityDetails() {
                 <HeaderTitle>{community.name}</HeaderTitle>
             </PageHeader>
 
-            <Content>
+            <MainContent>
                 <SectionHeader>
                     <SectionTitle>Detalhes</SectionTitle>
                 </SectionHeader>
@@ -123,27 +130,13 @@ export default function CommunityDetails() {
                 <Description>{community.description}</Description>
 
                 <MembersSection>
-                    <MembersHeader 
-                        onPress={toggleMembers}
-                        activeOpacity={0.7}
-                    >
-                        <HeaderLeft>
-                            <SectionTitle>Membros ({members.length})</SectionTitle>
-                            <AnimatedIcon style={{ transform: [{ rotate }] }}>
-                                <Feather name="chevron-down" size={24} color={colors.gray100} />
-                            </AnimatedIcon>
-                        </HeaderLeft>
-                        <ManageButton 
-                            onPress={(e) => {
-                                e.stopPropagation();
-                                setModalVisible(true);
-                            }}
-                            activeOpacity={0.7}
-                        >
+                    <SectionHeader>
+                        <SectionTitle>Membros ({members.length})</SectionTitle>
+                        <ManageButton onPress={() => setModalVisible(true)}>
                             <ManageButtonText>Gerenciar</ManageButtonText>
                             <Feather name="users" size={20} color={colors.gray100} />
                         </ManageButton>
-                    </MembersHeader>
+                    </SectionHeader>
 
                     {showMembers && (
                         <MembersListContainer>
@@ -172,13 +165,48 @@ export default function CommunityDetails() {
                         </MembersListContainer>
                     )}
                 </MembersSection>
-            </Content>
+
+                <SectionHeader>
+                    <SectionTitle>Competições</SectionTitle>
+                </SectionHeader>
+
+                <CompetitionsList
+                    data={competitions}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                        <CompetitionCard 
+                            onPress={() => router.push({
+                                pathname: '/comunidade/[id]/competicao/[competitionId]',
+                                params: { 
+                                    id: community.id,
+                                    competitionId: item.id 
+                                }
+                            })}
+                        >
+                            <CompetitionInfo>
+                                <CompetitionName>{item.name}</CompetitionName>
+                                {item.description && (
+                                    <CompetitionDescription>
+                                        {item.description}
+                                    </CompetitionDescription>
+                                )}
+                            </CompetitionInfo>
+                            <Feather name="chevron-right" size={24} color={colors.gray300} />
+                        </CompetitionCard>
+                    )}
+                    ListEmptyComponent={
+                        <EmptyContainer>
+                            <EmptyText>Nenhuma competição encontrada</EmptyText>
+                        </EmptyContainer>
+                    }
+                />
+            </MainContent>
 
             <FAB onPress={() => router.push({
                 pathname: '/comunidade/[id]/competicao/nova',
                 params: { id: community.id }
             })}>
-                <Feather name="award" size={24} color={colors.gray100} />
+                <Feather name="plus" size={24} color={colors.gray100} />
             </FAB>
 
             <Modal
@@ -256,7 +284,7 @@ const HeaderTitle = styled.Text`
     flex: 1;
 `;
 
-const Content = styled.View`
+const MainContent = styled.View`
     flex: 1;
     padding: 20px;
 `;
@@ -428,4 +456,36 @@ const ManageButtonText = styled.Text`
     font-size: 14px;
     font-weight: 500;
     margin-right: 8px;
+`;
+
+const CompetitionsList = styled.FlatList`
+    flex-grow: 0;
+    margin-top: 8px;
+`;
+
+const CompetitionCard = styled.TouchableOpacity`
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background-color: ${colors.secondary};
+    border-radius: 8px;
+    margin-bottom: 8px;
+`;
+
+const CompetitionInfo = styled.View`
+    flex: 1;
+    margin-right: 16px;
+`;
+
+const CompetitionName = styled.Text`
+    font-size: 16px;
+    font-weight: bold;
+    color: ${colors.gray100};
+`;
+
+const CompetitionDescription = styled.Text`
+    font-size: 14px;
+    color: ${colors.gray300};
+    margin-top: 4px;
 `;

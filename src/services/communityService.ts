@@ -41,7 +41,7 @@ class CommunityService {
         }
     }
 
-    async getCommunity(id: string) {
+    async getById(id: string) {
         try {
             const { data, error } = await supabase
                 .from('communities')

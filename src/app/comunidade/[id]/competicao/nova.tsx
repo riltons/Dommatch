@@ -4,19 +4,46 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import styled from 'styled-components/native';
 import { colors } from '@/styles/colors';
 import { Feather } from '@expo/vector-icons';
+import { competitionService } from '@/services/competitionService';
+import { ActivityIndicator } from 'react-native';
 
 export default function NovaCompeticao() {
     const router = useRouter();
-    const params = useLocalSearchParams();
+    const { id: communityId } = useLocalSearchParams();
+    const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
         description: '',
-        startDate: new Date(),
-        endDate: new Date(),
     });
 
     const handleSave = async () => {
-        // TODO: Implementar criação de competição
+        if (!formData.name.trim()) {
+            Alert.alert('Erro', 'O nome da competição é obrigatório');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            console.log('Dados do formulário:', {
+                ...formData,
+                community_id: communityId,
+            });
+
+            await competitionService.create({
+                name: formData.name.trim(),
+                description: formData.description.trim(),
+                community_id: communityId as string,
+            });
+            router.back();
+        } catch (error: any) {
+            console.error('Erro detalhado:', error);
+            Alert.alert(
+                'Erro',
+                error?.message || 'Erro ao criar competição. Tente novamente.'
+            );
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -53,8 +80,14 @@ export default function NovaCompeticao() {
                         />
                     </FormGroup>
 
-                    <SaveButton onPress={handleSave}>
-                        <SaveButtonText>Criar Competição</SaveButtonText>
+                    <SaveButton onPress={handleSave} disabled={loading}>
+                        {loading ? (
+                            <LoadingContainer>
+                                <ActivityIndicator color={colors.gray100} />
+                            </LoadingContainer>
+                        ) : (
+                            <SaveButtonText>Criar Competição</SaveButtonText>
+                        )}
                     </SaveButton>
                 </Form>
             </Content>
@@ -116,16 +149,23 @@ const Input = styled.TextInput`
     min-height: ${props => props.multiline ? '120px' : '48px'};
 `;
 
-const SaveButton = styled.TouchableOpacity`
-    background-color: ${colors.primary};
+const SaveButton = styled.TouchableOpacity<{ disabled?: boolean }>`
+    background-color: ${props => props.disabled ? colors.gray500 : colors.primary};
     padding: 16px;
     border-radius: 8px;
     align-items: center;
     margin-top: 20px;
+    opacity: ${props => props.disabled ? 0.7 : 1};
 `;
 
 const SaveButtonText = styled.Text`
     color: ${colors.gray100};
     font-size: 16px;
     font-weight: bold;
+`;
+
+const LoadingContainer = styled.View`
+    height: 24px;
+    justify-content: center;
+    align-items: center;
 `;
