@@ -268,22 +268,21 @@ export default function CommunityDetails() {
                                     }
                                     scrollEnabled={false}
                                 />
+                                {selectedMembers.length > 0 && (
+                                    <RemoveButton 
+                                        onPress={handleRemoveMembers}
+                                        disabled={loading}
+                                    >
+                                        {loading ? (
+                                            <ActivityIndicator color={colors.white} />
+                                        ) : (
+                                            <RemoveButtonText>
+                                                Remover {selectedMembers.length} {selectedMembers.length === 1 ? 'membro' : 'membros'}
+                                            </RemoveButtonText>
+                                        )}
+                                    </RemoveButton>
+                                )}
                             </MembersListScrollView>
-
-                            {selectedMembers.length > 0 && (
-                                <RemoveButton 
-                                    onPress={handleRemoveMembers}
-                                    disabled={loading}
-                                >
-                                    {loading ? (
-                                        <ActivityIndicator color={colors.white} />
-                                    ) : (
-                                        <RemoveButtonText>
-                                            Remover {selectedMembers.length} {selectedMembers.length === 1 ? 'membro' : 'membros'}
-                                        </RemoveButtonText>
-                                    )}
-                                </RemoveButton>
-                            )}
                         </MembersListContainer>
                     )}
                 </MembersSection>
@@ -755,6 +754,7 @@ const RemoveButton = styled.TouchableOpacity<{ disabled?: boolean }>`
     justify-content: center;
     opacity: ${props => props.disabled ? 0.7 : 1};
     margin-top: 16px;
+    margin-bottom: 16px;
 `;
 
 const RemoveButtonText = styled.Text`

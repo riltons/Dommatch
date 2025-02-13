@@ -11,6 +11,8 @@ export default function TabRoutesLayout() {
                     backgroundColor: colors.backgroundDark,
                     borderTopWidth: 0,
                     elevation: 0,
+                    paddingBottom: 16,
+                    height: 70,
                 },
                 tabBarActiveTintColor: colors.primary,
                 tabBarInactiveTintColor: colors.gray300,
