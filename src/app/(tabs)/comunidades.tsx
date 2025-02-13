@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '@/styles/colors';
 import { Header } from '@/components/Header';
 import { Community, communityService } from '@/services/communityService';
+import { useRouter } from 'expo-router';
 
 const Container = styled.View`
     flex: 1;
@@ -163,6 +164,7 @@ const FAB = styled.TouchableOpacity`
 `;
 
 export default function Comunidades() {
+    const router = useRouter();
     const [communities, setCommunities] = useState<Community[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -258,6 +260,10 @@ export default function Comunidades() {
         setShowModal(true);
     };
 
+    const handleCardPress = (communityId: string) => {
+        router.push(`/comunidade/${communityId}`);
+    };
+
     useEffect(() => {
         loadCommunities();
     }, []);
@@ -291,7 +297,7 @@ export default function Comunidades() {
                     </EmptyContainer>
                 ) : (
                     communities.map(community => (
-                        <CommunityCard key={community.id} onPress={() => handleEdit(community)}>
+                        <CommunityCard key={community.id} onPress={() => handleCardPress(community.id)}>
                             <CommunityHeader>
                                 <MaterialCommunityIcons 
                                     name="account-group" 
