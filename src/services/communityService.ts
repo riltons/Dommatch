@@ -4,7 +4,7 @@ export interface Community {
     id: string;
     name: string;
     description: string;
-    owner_id: string;
+    created_by: string;
     created_at: string;
     updated_at: string;
     members_count: number;
@@ -89,7 +89,7 @@ class CommunityService {
                 .from('communities')
                 .insert({
                     ...community,
-                    owner_id: userData.user.id,
+                    created_by: userData.user.id,
                     created_at: now,
                     updated_at: now
                 })
@@ -120,7 +120,7 @@ class CommunityService {
                 .from('communities')
                 .insert([{
                     ...data,
-                    owner_id: userData.user.id
+                    created_by: userData.user.id
                 }])
                 .select()
                 .single();

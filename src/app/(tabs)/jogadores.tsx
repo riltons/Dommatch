@@ -97,6 +97,10 @@ export default function Jogadores() {
         <Container>
             <Header title="Jogadores" onNotificationPress={() => {}} onProfilePress={() => {}} />
 
+            <AddButton onPress={() => router.push('/jogadores/new')}>
+                <Feather name="plus" size={24} color={colors.white} />
+            </AddButton>
+
             <FlatList
                 data={players}
                 renderItem={renderItem}
@@ -194,6 +198,19 @@ const CreateButton = styled.TouchableOpacity`
     position: absolute;
     right: 16px;
     bottom: 16px;
+    width: 56px;
+    height: 56px;
+    border-radius: 28px;
+    background-color: ${colors.primary};
+    justify-content: center;
+    align-items: center;
+    elevation: 4;
+`;
+
+const AddButton = styled.TouchableOpacity`
+    position: absolute;
+    right: 16px;
+    top: 16px;
     width: 56px;
     height: 56px;
     border-radius: 28px;
