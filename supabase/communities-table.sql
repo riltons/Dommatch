@@ -1,17 +1,15 @@
 -- Drop existing table if exists
--- DROP TABLE IF EXISTS communities;
+DROP TABLE IF EXISTS communities CASCADE;
 
 -- Create the communities table
--- CREATE TABLE communities (
---     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
---     name TEXT NOT NULL,
---     description TEXT,
---     owner_id UUID REFERENCES auth.users(id) NOT NULL,
---     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
---     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
---     members_count INTEGER DEFAULT 0,
---     games_count INTEGER DEFAULT 0
--- );
+CREATE TABLE communities (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    description TEXT,
+    created_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
 
 -- Add updated_at column if not exists
 DO $$ 
@@ -59,17 +57,31 @@ DROP POLICY IF EXISTS "Users can delete their own communities" ON communities;
 ALTER TABLE communities ENABLE ROW LEVEL SECURITY;
 
 -- Policy for viewing communities (everyone can view)
-CREATE POLICY "Communities are viewable by everyone" ON communities
-    FOR SELECT USING (true);
+CREATE POLICY "communities_select_policy"
+ON communities FOR SELECT
+USING (
+    created_by = auth.uid() OR
+    EXISTS (
+        SELECT 1 FROM community_members cm
+        WHERE cm.community_id = communities.id
+        AND cm.player_id IN (
+            SELECT id FROM players WHERE created_by = auth.uid()
+        )
+    )
+);
 
 -- Policy for inserting communities (authenticated users can create)
-CREATE POLICY "Users can create communities" ON communities
-    FOR INSERT WITH CHECK (auth.uid() = owner_id);
+CREATE POLICY "communities_insert_policy"
+ON communities FOR INSERT
+WITH CHECK (created_by = auth.uid());
 
 -- Policy for updating communities (only owner can update)
-CREATE POLICY "Users can update their own communities" ON communities
-    FOR UPDATE USING (auth.uid() = owner_id);
+CREATE POLICY "communities_update_policy"
+ON communities FOR UPDATE
+USING (created_by = auth.uid())
+WITH CHECK (created_by = auth.uid());
 
 -- Policy for deleting communities (only owner can delete)
-CREATE POLICY "Users can delete their own communities" ON communities
-    FOR DELETE USING (auth.uid() = owner_id);
+CREATE POLICY "communities_delete_policy"
+ON communities FOR DELETE
+USING (created_by = auth.uid());

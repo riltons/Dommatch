@@ -15,24 +15,51 @@ BEGIN
     END IF;
 END $$;
 
--- Cria as políticas de segurança
-CREATE POLICY "Usuários autenticados podem visualizar jogadores"
+-- Remover tabela se existir
+DROP TABLE IF EXISTS players CASCADE;
+
+-- Criar tabela de jogadores
+CREATE TABLE players (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    nickname TEXT,
+    phone TEXT UNIQUE,
+    created_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- Habilitar RLS
+ALTER TABLE players ENABLE ROW LEVEL SECURITY;
+
+-- Criar políticas de segurança
+CREATE POLICY "players_select_policy"
 ON players FOR SELECT
-TO authenticated
-USING (true);
+USING (
+    created_by = auth.uid() OR
+    EXISTS (
+        SELECT 1 FROM community_members cm
+        JOIN communities c ON c.id = cm.community_id
+        WHERE cm.player_id IN (
+            SELECT id FROM players WHERE created_by = auth.uid()
+        )
+        AND EXISTS (
+            SELECT 1 FROM community_members
+            WHERE community_id = c.id
+            AND player_id = players.id
+        )
+    )
+);
 
-CREATE POLICY "Usuários podem criar seus próprios jogadores"
+CREATE POLICY "players_insert_policy"
 ON players FOR INSERT
-TO authenticated
-WITH CHECK (auth.uid() = user_id);
+WITH CHECK (created_by = auth.uid());
 
-CREATE POLICY "Usuários podem atualizar seus próprios jogadores"
+CREATE POLICY "players_update_policy"
 ON players FOR UPDATE
-TO authenticated
-USING (auth.uid() = user_id)
-WITH CHECK (auth.uid() = user_id);
+USING (created_by = auth.uid())
+WITH CHECK (created_by = auth.uid());
 
-CREATE POLICY "Usuários podem deletar seus próprios jogadores"
+CREATE POLICY "players_delete_policy"
 ON players FOR DELETE
-TO authenticated
-USING (auth.uid() = user_id);
+USING (created_by = auth.uid());
