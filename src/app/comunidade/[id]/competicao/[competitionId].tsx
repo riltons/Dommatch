@@ -157,7 +157,7 @@ export default function CompetitionDetails() {
                                 data={games}
                                 keyExtractor={(item) => item.id}
                                 renderItem={({ item }) => (
-                                    <GameCard onPress={() => {}}>
+                                    <GameCard onPress={() => router.push(`/comunidade/${communityId}/competicao/${competitionId}/jogo/${item.id}`)}>
                                         <GameInfo>
                                             <GameTeam>
                                                 <GameTeamText>Time 1</GameTeamText>
