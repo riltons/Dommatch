@@ -1,5 +1,15 @@
 import { supabase } from '@/lib/supabase';
 
+export interface CommunityMember {
+    id: string;
+    community_id: string;
+    player_id: string;
+    players: {
+        id: string;
+        name: string;
+    };
+}
+
 export const communityMembersService = {
     async listMembers(communityId: string) {
         try {
@@ -57,6 +67,32 @@ export const communityMembersService = {
             return data;
         } catch (error) {
             console.error('Erro ao adicionar membro:', error);
+            throw error;
+        }
+    },
+
+    async addMembers(communityId: string, playerIds: string[]) {
+        try {
+            const { data, error } = await supabase
+                .from('community_members')
+                .insert(
+                    playerIds.map(playerId => ({
+                        community_id: communityId,
+                        player_id: playerId
+                    }))
+                )
+                .select(`
+                    *,
+                    players (
+                        id,
+                        name
+                    )
+                `);
+
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Erro ao adicionar membros:', error);
             throw error;
         }
     },

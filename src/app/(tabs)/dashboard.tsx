@@ -7,7 +7,7 @@ import { Header } from "@/components/Header"
 
 const Container = styled.View`
     flex: 1;
-    background-color: ${colors.primary};
+    background-color: ${colors.backgroundDark};
 `;
 
 const ScrollContent = styled.ScrollView`

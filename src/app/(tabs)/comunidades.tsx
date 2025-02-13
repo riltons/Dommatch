@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Alert, Modal as RNModal, ActivityIndicator, TouchableOpacity } from 'react-native';
 import styled from 'styled-components/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -6,6 +6,7 @@ import { colors } from '@/styles/colors';
 import { Header } from '@/components/Header';
 import { Community, communityService } from '@/services/communityService';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 
 const Container = styled.View`
     flex: 1;
@@ -150,7 +151,7 @@ const EmptyText = styled.Text`
     margin-top: 16px;
 `;
 
-const FAB = styled.TouchableOpacity`
+const CreateButton = styled.TouchableOpacity`
     position: absolute;
     right: 16px;
     bottom: 16px;
@@ -174,10 +175,20 @@ export default function Comunidades() {
         description: ''
     });
 
+    useEffect(() => {
+        loadCommunities();
+    }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            loadCommunities();
+        }, [])
+    );
+
     const loadCommunities = async () => {
         try {
-            const { data, error } = await communityService.listCommunities();
-            if (error) throw error;
+            setLoading(true);
+            const data = await communityService.list();
             setCommunities(data || []);
         } catch (error) {
             console.error('Erro ao carregar comunidades:', error);
@@ -195,14 +206,14 @@ export default function Comunidades() {
 
         try {
             if (selectedCommunity) {
-                const { error } = await communityService.updateCommunity(selectedCommunity.id, {
+                const { error } = await communityService.update(selectedCommunity.id, {
                     name: formData.name.trim(),
                     description: formData.description.trim()
                 });
                 if (error) throw error;
                 Alert.alert('Sucesso', 'Comunidade atualizada com sucesso');
             } else {
-                const { error } = await communityService.createCommunity({
+                const { error } = await communityService.create({
                     name: formData.name.trim(),
                     description: formData.description.trim()
                 });
@@ -240,7 +251,7 @@ export default function Comunidades() {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            const { error } = await communityService.deleteCommunity(community.id);
+                            const { error } = await communityService.delete(community.id);
                             if (error) throw error;
                             Alert.alert('Sucesso', 'Comunidade excluída com sucesso');
                             loadCommunities();
@@ -263,10 +274,6 @@ export default function Comunidades() {
     const handleCardPress = (communityId: string) => {
         router.push(`/comunidade/${communityId}`);
     };
-
-    useEffect(() => {
-        loadCommunities();
-    }, []);
 
     if (loading) {
         return (
@@ -332,13 +339,15 @@ export default function Comunidades() {
                 )}
             </ScrollContent>
 
-            <FAB onPress={handleAddNew}>
+            <CreateButton 
+                onPress={() => router.push('/comunidade/nova')}
+            >
                 <MaterialCommunityIcons 
                     name="plus" 
                     size={24} 
-                    color={colors.secondary}
+                    color={colors.gray100}
                 />
-            </FAB>
+            </CreateButton>
 
             <RNModal
                 visible={showModal}

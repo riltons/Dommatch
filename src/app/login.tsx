@@ -20,19 +20,24 @@ export default function Login() {
             return;
         }
 
+        if (!form.email.includes('@')) {
+            Alert.alert('Erro', 'Digite um e-mail válido');
+            return;
+        }
+
         setLoading(true);
         try {
             const response = await signIn(form.email, form.password);
             
             if (!response.success) {
-                Alert.alert('Erro', response.error || 'Não foi possível fazer login. Tente novamente.');
+                Alert.alert('Erro', response.error || 'E-mail ou senha incorretos');
                 return;
             }
 
             router.replace('/(tabs)/dashboard');
         } catch (error: any) {
             console.error('Erro no login:', error);
-            Alert.alert('Erro', 'Ocorreu um erro inesperado. Tente novamente.');
+            Alert.alert('Erro', 'E-mail ou senha incorretos');
         } finally {
             setLoading(false);
         }

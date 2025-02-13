@@ -24,6 +24,7 @@ export default function CompetitionDetails() {
     const [communityMembers, setCommunityMembers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [modalVisible, setModalVisible] = useState(false);
+    const [showMembers, setShowMembers] = useState(true);
 
     useEffect(() => {
         loadCompetitionAndMembers();
@@ -90,34 +91,45 @@ export default function CompetitionDetails() {
 
                 <SectionHeader>
                     <SectionTitle>Membros ({members.length})</SectionTitle>
-                    <ManageButton onPress={() => setModalVisible(true)}>
-                        <ManageButtonText>Gerenciar</ManageButtonText>
-                        <Feather name="users" size={20} color={colors.gray100} />
-                    </ManageButton>
+                    <ButtonsContainer>
+                        <ToggleButton onPress={() => setShowMembers(!showMembers)}>
+                            <Feather 
+                                name={showMembers ? "chevron-up" : "chevron-down"} 
+                                size={20} 
+                                color={colors.gray100} 
+                            />
+                        </ToggleButton>
+                        <ManageButton onPress={() => setModalVisible(true)}>
+                            <ManageButtonText>Gerenciar</ManageButtonText>
+                            <Feather name="users" size={20} color={colors.gray100} />
+                        </ManageButton>
+                    </ButtonsContainer>
                 </SectionHeader>
 
-                <MembersList
-                    data={members}
-                    keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => (
-                        <MemberCard>
-                            <MemberInfo>
-                                <MemberName>{item.players.name}</MemberName>
-                            </MemberInfo>
-                            <TouchableOpacity 
-                                onPress={() => handleToggleMember(item.player_id, true)}
-                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                            >
-                                <Feather name="user-minus" size={20} color={colors.error} />
-                            </TouchableOpacity>
-                        </MemberCard>
-                    )}
-                    ListEmptyComponent={
-                        <EmptyContainer>
-                            <EmptyText>Nenhum membro encontrado</EmptyText>
-                        </EmptyContainer>
-                    }
-                />
+                {showMembers && (
+                    <MembersList
+                        data={members}
+                        keyExtractor={(item) => item.id}
+                        renderItem={({ item }) => (
+                            <MemberCard>
+                                <MemberInfo>
+                                    <MemberName>{item.players.name}</MemberName>
+                                </MemberInfo>
+                                <TouchableOpacity 
+                                    onPress={() => handleToggleMember(item.player_id, true)}
+                                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                >
+                                    <Feather name="user-minus" size={20} color={colors.error} />
+                                </TouchableOpacity>
+                            </MemberCard>
+                        )}
+                        ListEmptyComponent={
+                            <EmptyContainer>
+                                <EmptyText>Nenhum membro encontrado</EmptyText>
+                            </EmptyContainer>
+                        }
+                    />
+                )}
             </MainContent>
 
             <Modal
@@ -203,8 +215,9 @@ const MainContent = styled.View`
 
 const SectionHeader = styled.View`
     flex-direction: row;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
+    margin-top: 24px;
     margin-bottom: 16px;
 `;
 
@@ -218,6 +231,18 @@ const Description = styled.Text`
     font-size: 16px;
     color: ${colors.gray300};
     margin-bottom: 24px;
+`;
+
+const ButtonsContainer = styled.View`
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+`;
+
+const ToggleButton = styled.TouchableOpacity`
+    padding: 8px;
+    border-radius: 8px;
+    background-color: ${colors.secondary};
 `;
 
 const ManageButton = styled.TouchableOpacity`

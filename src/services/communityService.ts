@@ -4,7 +4,7 @@ export interface Community {
     id: string;
     name: string;
     description: string;
-    owner_id: string;
+    created_by: string;
     created_at: string;
     updated_at: string;
     members_count: number;
@@ -22,6 +22,8 @@ export interface UpdateCommunityDTO {
 }
 
 class CommunityService {
+    private communities: Community[] = [];
+
     async listCommunities() {
         try {
             const { data, error } = await supabase
@@ -38,6 +40,26 @@ class CommunityService {
         } catch (error) {
             console.error('Erro ao listar comunidades:', error);
             return { data: null, error };
+        }
+    }
+
+    async list() {
+        try {
+            const { data, error } = await supabase
+                .from('communities')
+                .select('*')
+                .order('name');
+
+            if (error) {
+                console.error('Erro ao listar comunidades:', error);
+                throw new Error('Erro ao listar comunidades');
+            }
+
+            this.communities = data;
+            return data;
+        } catch (error) {
+            console.error('Erro ao listar comunidades:', error);
+            throw error;
         }
     }
 
@@ -67,7 +89,7 @@ class CommunityService {
                 .from('communities')
                 .insert({
                     ...community,
-                    owner_id: userData.user.id,
+                    created_by: userData.user.id,
                     created_at: now,
                     updated_at: now
                 })
@@ -79,10 +101,42 @@ class CommunityService {
                 throw error;
             }
 
+            // Atualiza a lista de comunidades em memória
+            await this.list();
+
             return { data, error: null };
         } catch (error) {
             console.error('Erro ao criar comunidade:', error);
             return { data: null, error };
+        }
+    }
+
+    async create(data: CreateCommunityDTO) {
+        try {
+            const { data: userData, error: userError } = await supabase.auth.getUser();
+            if (userError) throw userError;
+
+            const { data: newCommunity, error } = await supabase
+                .from('communities')
+                .insert([{
+                    ...data,
+                    created_by: userData.user.id
+                }])
+                .select()
+                .single();
+
+            if (error) {
+                console.error('Erro ao criar comunidade:', error);
+                throw new Error('Erro ao criar comunidade');
+            }
+
+            // Atualiza a lista de comunidades em memória
+            await this.list();
+
+            return newCommunity;
+        } catch (error) {
+            console.error('Erro ao criar comunidade:', error);
+            throw error;
         }
     }
 
@@ -99,6 +153,9 @@ class CommunityService {
                 console.error('Erro ao atualizar comunidade:', error);
                 throw error;
             }
+
+            // Atualiza a lista de comunidades em memória
+            await this.list();
 
             return { data, error: null };
         } catch (error) {
@@ -118,6 +175,9 @@ class CommunityService {
                 console.error('Erro ao excluir comunidade:', error);
                 throw error;
             }
+
+            // Atualiza a lista de comunidades em memória
+            await this.list();
 
             return { error: null };
         } catch (error) {

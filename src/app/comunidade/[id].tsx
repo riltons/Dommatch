@@ -50,6 +50,8 @@ export default function CommunityDetails() {
     const [modalVisible, setModalVisible] = useState(false);
     const [showMembers, setShowMembers] = useState(false);
     const [rotateAnim] = useState(new Animated.Value(0));
+    const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
+    const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
 
     const toggleMembers = () => {
         setShowMembers(!showMembers);
@@ -112,6 +114,79 @@ export default function CommunityDetails() {
         }
     };
 
+    const handleSelectPlayer = (playerId: string) => {
+        setSelectedPlayers(prev => {
+            if (prev.includes(playerId)) {
+                return prev.filter(id => id !== playerId);
+            }
+            return [...prev, playerId];
+        });
+    };
+
+    const handleSelectAll = () => {
+        const availablePlayers = allPlayers.filter(player => 
+            !members.some(member => member.player_id === player.id)
+        );
+        
+        if (selectedPlayers.length === availablePlayers.length) {
+            setSelectedPlayers([]);
+        } else {
+            setSelectedPlayers(availablePlayers.map(player => player.id));
+        }
+    };
+
+    const handleSaveMembers = async () => {
+        if (!community || selectedPlayers.length === 0) return;
+
+        try {
+            setLoading(true);
+            await communityMembersService.addMembers(community.id, selectedPlayers);
+            setModalVisible(false);
+            setSelectedPlayers([]);
+            await loadData();
+        } catch (error) {
+            console.error(error);
+            Alert.alert('Erro', 'Não foi possível adicionar os membros');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSelectMember = (memberId: string) => {
+        setSelectedMembers(prev => {
+            if (prev.includes(memberId)) {
+                return prev.filter(id => id !== memberId);
+            }
+            return [...prev, memberId];
+        });
+    };
+
+    const handleSelectAllMembers = () => {
+        if (selectedMembers.length === members.length) {
+            setSelectedMembers([]);
+        } else {
+            setSelectedMembers(members.map(member => member.player_id));
+        }
+    };
+
+    const handleRemoveMembers = async () => {
+        if (!community || selectedMembers.length === 0) return;
+
+        try {
+            setLoading(true);
+            for (const memberId of selectedMembers) {
+                await communityMembersService.removeMember(community.id, memberId);
+            }
+            setSelectedMembers([]);
+            await loadData();
+        } catch (error) {
+            console.error(error);
+            Alert.alert('Erro', 'Não foi possível remover os membros');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     if (loading || !community) {
         return (
             <Container>
@@ -140,7 +215,14 @@ export default function CommunityDetails() {
 
                 <MembersSection>
                     <SectionHeader>
-                        <SectionTitle>Membros ({members.length})</SectionTitle>
+                        <HeaderLeft>
+                            <SectionTitle>Membros ({members.length})</SectionTitle>
+                            <ExpandButton onPress={toggleMembers}>
+                                <Animated.View style={{ transform: [{ rotate }] }}>
+                                    <Feather name="chevron-down" size={24} color={colors.gray300} />
+                                </Animated.View>
+                            </ExpandButton>
+                        </HeaderLeft>
                         <ManageButton onPress={() => setModalVisible(true)}>
                             <ManageButtonText>Gerenciar</ManageButtonText>
                             <Feather name="users" size={20} color={colors.gray100} />
@@ -149,28 +231,58 @@ export default function CommunityDetails() {
 
                     {showMembers && (
                         <MembersListContainer>
-                            <MembersList
-                                data={members}
-                                keyExtractor={(item) => item.id}
-                                renderItem={({ item }) => (
-                                    <MemberCard>
-                                        <MemberInfo>
-                                            <MemberName>{item.players.name}</MemberName>
-                                        </MemberInfo>
-                                        <TouchableOpacity 
-                                            onPress={() => handleToggleMember(item.player_id, true)}
-                                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            <SelectAllHeader>
+                                <SelectAllButton onPress={handleSelectAllMembers}>
+                                    <Feather 
+                                        name={selectedMembers.length === members.length ? "check-square" : "square"} 
+                                        size={24} 
+                                        color={colors.primary} 
+                                    />
+                                    <SelectAllText>Selecionar Todos</SelectAllText>
+                                </SelectAllButton>
+                            </SelectAllHeader>
+
+                            <MembersListScrollView>
+                                <MembersList
+                                    data={members}
+                                    keyExtractor={(item) => item.id}
+                                    renderItem={({ item }) => (
+                                        <MemberCard 
+                                            onPress={() => handleSelectMember(item.player_id)}
+                                            selected={selectedMembers.includes(item.player_id)}
                                         >
-                                            <Feather name="user-minus" size={20} color={colors.error} />
-                                        </TouchableOpacity>
-                                    </MemberCard>
+                                            <MemberInfo>
+                                                <MemberName>{item.players.name}</MemberName>
+                                            </MemberInfo>
+                                            <Feather 
+                                                name={selectedMembers.includes(item.player_id) ? "check-square" : "square"} 
+                                                size={24} 
+                                                color={selectedMembers.includes(item.player_id) ? colors.primary : colors.gray300} 
+                                            />
+                                        </MemberCard>
+                                    )}
+                                    ListEmptyComponent={
+                                        <EmptyContainer>
+                                            <EmptyText>Nenhum membro encontrado</EmptyText>
+                                        </EmptyContainer>
+                                    }
+                                    scrollEnabled={false}
+                                />
+                                {selectedMembers.length > 0 && (
+                                    <RemoveButton 
+                                        onPress={handleRemoveMembers}
+                                        disabled={loading}
+                                    >
+                                        {loading ? (
+                                            <ActivityIndicator color={colors.white} />
+                                        ) : (
+                                            <RemoveButtonText>
+                                                Remover {selectedMembers.length} {selectedMembers.length === 1 ? 'membro' : 'membros'}
+                                            </RemoveButtonText>
+                                        )}
+                                    </RemoveButton>
                                 )}
-                                ListEmptyComponent={
-                                    <EmptyContainer>
-                                        <EmptyText>Nenhum membro encontrado</EmptyText>
-                                    </EmptyContainer>
-                                }
-                            />
+                            </MembersListScrollView>
                         </MembersListContainer>
                     )}
                 </MembersSection>
@@ -241,16 +353,35 @@ export default function CommunityDetails() {
                 animationType="slide"
                 transparent={true}
                 visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}
+                onRequestClose={() => {
+                    setModalVisible(false);
+                    setSelectedPlayers([]);
+                }}
             >
                 <ModalContainer>
                     <ModalContent>
                         <ModalHeader>
                             <ModalTitle>Adicionar Membros</ModalTitle>
-                            <TouchableOpacity onPress={() => setModalVisible(false)}>
+                            <TouchableOpacity onPress={() => {
+                                setModalVisible(false);
+                                setSelectedPlayers([]);
+                            }}>
                                 <Feather name="x" size={24} color={colors.gray100} />
                             </TouchableOpacity>
                         </ModalHeader>
+
+                        <SelectAllHeader>
+                            <SelectAllButton onPress={handleSelectAll}>
+                                <Feather 
+                                    name={selectedPlayers.length === allPlayers.filter(player => 
+                                        !members.some(member => member.player_id === player.id)
+                                    ).length ? "check-square" : "square"} 
+                                    size={24} 
+                                    color={colors.primary} 
+                                />
+                                <SelectAllText>Selecionar Todos</SelectAllText>
+                            </SelectAllButton>
+                        </SelectAllHeader>
 
                         <PlayersList
                             data={allPlayers.filter(player => 
@@ -258,14 +389,17 @@ export default function CommunityDetails() {
                             )}
                             keyExtractor={(item) => item.id}
                             renderItem={({ item }) => (
-                                <PlayerCard onPress={() => handleToggleMember(item.id, false)}>
+                                <PlayerCard 
+                                    onPress={() => handleSelectPlayer(item.id)}
+                                    selected={selectedPlayers.includes(item.id)}
+                                >
                                     <PlayerInfo>
                                         <PlayerName>{item.name}</PlayerName>
                                     </PlayerInfo>
                                     <Feather 
-                                        name="user-plus" 
-                                        size={20} 
-                                        color={colors.primary}
+                                        name={selectedPlayers.includes(item.id) ? "check-square" : "square"} 
+                                        size={24} 
+                                        color={selectedPlayers.includes(item.id) ? colors.primary : colors.gray300} 
                                     />
                                 </PlayerCard>
                             )}
@@ -275,6 +409,19 @@ export default function CommunityDetails() {
                                 </EmptyContainer>
                             }
                         />
+
+                        <SaveButton 
+                            onPress={handleSaveMembers}
+                            disabled={selectedPlayers.length === 0 || loading}
+                        >
+                            {loading ? (
+                                <ActivityIndicator color={colors.white} />
+                            ) : (
+                                <SaveButtonText>
+                                    Adicionar {selectedPlayers.length} {selectedPlayers.length === 1 ? 'membro' : 'membros'}
+                                </SaveButtonText>
+                            )}
+                        </SaveButton>
                     </ModalContent>
                 </ModalContainer>
             </Modal>
@@ -366,16 +513,20 @@ const MembersListContainer = styled.View`
     padding: 12px;
 `;
 
+const MembersListScrollView = styled.ScrollView`
+    max-height: 300px;
+`;
+
 const MembersList = styled.FlatList`
     flex-grow: 0;
 `;
 
-const MemberCard = styled.View`
+const MemberCard = styled.TouchableOpacity<{ selected: boolean }>`
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
     padding: 12px;
-    background-color: ${colors.backgroundDark};
+    background-color: ${props => props.selected ? colors.error + '20' : colors.backgroundDark};
     border-radius: 8px;
     margin-bottom: 8px;
 `;
@@ -421,12 +572,12 @@ const PlayersList = styled.FlatList`
     flex: 1;
 `;
 
-const PlayerCard = styled.TouchableOpacity`
+const PlayerCard = styled.TouchableOpacity<{ selected: boolean }>`
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
     padding: 16px;
-    background-color: ${colors.secondary};
+    background-color: ${props => props.selected ? colors.primary + '20' : colors.secondary};
     border-radius: 8px;
     margin-bottom: 8px;
 `;
@@ -549,5 +700,65 @@ const StatusBadge = styled.View<{ status: 'upcoming' | 'active' }>`
 const StatusText = styled.Text`
     color: ${colors.gray100};
     font-size: 12px;
+    font-weight: bold;
+`;
+
+const SelectButton = styled.TouchableOpacity<{ selected: boolean }>`
+    padding: 4px;
+`;
+
+const SaveButton = styled.TouchableOpacity<{ disabled?: boolean }>`
+    background-color: ${colors.primary};
+    padding: 16px;
+    border-radius: 8px;
+    align-items: center;
+    justify-content: center;
+    opacity: ${props => props.disabled ? 0.7 : 1};
+    margin-top: 16px;
+`;
+
+const SaveButtonText = styled.Text`
+    color: ${colors.white};
+    font-size: 16px;
+    font-weight: bold;
+`;
+
+const SelectAllHeader = styled.View`
+    flex-direction: row;
+    justify-content: flex-end;
+    padding: 8px 0;
+    margin-bottom: 8px;
+`;
+
+const SelectAllButton = styled.TouchableOpacity`
+    flex-direction: row;
+    align-items: center;
+`;
+
+const SelectAllText = styled.Text`
+    color: ${colors.gray100};
+    font-size: 16px;
+    margin-left: 8px;
+`;
+
+const ExpandButton = styled.TouchableOpacity`
+    padding: 4px;
+    margin-left: 8px;
+`;
+
+const RemoveButton = styled.TouchableOpacity<{ disabled?: boolean }>`
+    background-color: ${colors.error};
+    padding: 16px;
+    border-radius: 8px;
+    align-items: center;
+    justify-content: center;
+    opacity: ${props => props.disabled ? 0.7 : 1};
+    margin-top: 16px;
+    margin-bottom: 16px;
+`;
+
+const RemoveButtonText = styled.Text`
+    color: ${colors.white};
+    font-size: 16px;
     font-weight: bold;
 `;
