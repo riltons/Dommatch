@@ -9,8 +9,15 @@ export interface Competition {
     created_at: string;
 }
 
+export interface CreateCompetitionDTO {
+    name: string;
+    description: string;
+    community_id: string;
+    start_date: string;
+}
+
 export const competitionService = {
-    async create(data: Omit<Competition, 'id' | 'created_at'>) {
+    async create(data: CreateCompetitionDTO) {
         try {
             console.log('Criando competição:', data);
             const { data: newCompetition, error } = await supabase
@@ -31,6 +38,26 @@ export const competitionService = {
             return newCompetition;
         } catch (error) {
             console.error('Erro ao criar competição:', error);
+            throw error;
+        }
+    },
+
+    async refreshCompetitions(communityId: string) {
+        try {
+            const { data: competitions, error } = await supabase
+                .from('competitions')
+                .select('*')
+                .eq('community_id', communityId)
+                .order('start_date', { ascending: true });
+
+            if (error) {
+                console.error('Erro ao buscar competições:', error);
+                throw new Error('Erro ao buscar competições');
+            }
+
+            return competitions;
+        } catch (error) {
+            console.error('Erro ao buscar competições:', error);
             throw error;
         }
     },

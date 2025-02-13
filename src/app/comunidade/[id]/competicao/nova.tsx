@@ -1,20 +1,23 @@
 import React, { useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import styled from 'styled-components/native';
 import { colors } from '@/styles/colors';
 import { Feather } from '@expo/vector-icons';
 import { competitionService } from '@/services/competitionService';
-import { ActivityIndicator } from 'react-native';
+import { DatePickerInput } from 'react-native-paper-dates';
+import { PaperProvider } from 'react-native-paper';
+import { TextInput } from 'react-native-paper';
 
 export default function NovaCompeticao() {
     const router = useRouter();
     const { id: communityId } = useLocalSearchParams();
-    const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
         description: '',
+        start_date: new Date()
     });
+    const [loading, setLoading] = useState(false);
 
     const handleSave = async () => {
         if (!formData.name.trim()) {
@@ -33,7 +36,11 @@ export default function NovaCompeticao() {
                 name: formData.name.trim(),
                 description: formData.description.trim(),
                 community_id: communityId as string,
+                start_date: formData.start_date.toISOString()
             });
+            
+            // Atualizar lista de competições
+            await competitionService.refreshCompetitions(communityId as string);
             router.back();
         } catch (error: any) {
             console.error('Erro detalhado:', error);
@@ -47,16 +54,16 @@ export default function NovaCompeticao() {
     };
 
     return (
-        <Container>
-            <PageHeader>
-                <BackButton onPress={() => router.back()}>
-                    <Feather name="arrow-left" size={24} color={colors.gray100} />
-                </BackButton>
-                <HeaderTitle>Nova Competição</HeaderTitle>
-            </PageHeader>
+        <PaperProvider>
+            <Container>
+                <PageHeader>
+                    <BackButton onPress={() => router.back()}>
+                        <Feather name="arrow-left" size={24} color={colors.gray100} />
+                    </BackButton>
+                    <HeaderTitle>Nova Competição</HeaderTitle>
+                </PageHeader>
 
-            <Content>
-                <Form>
+                <Content>
                     <FormGroup>
                         <Label>Nome</Label>
                         <Input
@@ -80,18 +87,42 @@ export default function NovaCompeticao() {
                         />
                     </FormGroup>
 
+                    <FormGroup>
+                        <Label>Data da Competição</Label>
+                        <DatePickerInput
+                            locale="pt"
+                            label="Data"
+                            value={formData.start_date}
+                            onChange={(date) => date && setFormData(prev => ({ ...prev, start_date: date }))}
+                            inputMode="start"
+                            mode="outlined"
+                            style={{
+                                backgroundColor: colors.secondary,
+                            }}
+                            theme={{
+                                colors: {
+                                    primary: colors.primary,
+                                    text: colors.gray100,
+                                    placeholder: colors.gray300,
+                                    background: colors.secondary,
+                                    surface: colors.secondary,
+                                    onSurface: colors.gray100,
+                                    outline: colors.gray700,
+                                }
+                            }}
+                        />
+                    </FormGroup>
+
                     <SaveButton onPress={handleSave} disabled={loading}>
                         {loading ? (
-                            <LoadingContainer>
-                                <ActivityIndicator color={colors.gray100} />
-                            </LoadingContainer>
+                            <ActivityIndicator color={colors.gray100} />
                         ) : (
                             <SaveButtonText>Criar Competição</SaveButtonText>
                         )}
                     </SaveButton>
-                </Form>
-            </Content>
-        </Container>
+                </Content>
+            </Container>
+        </PaperProvider>
     );
 }
 
@@ -126,10 +157,6 @@ const Content = styled.ScrollView.attrs({
     },
 })``;
 
-const Form = styled.View`
-    flex: 1;
-`;
-
 const FormGroup = styled.View`
     margin-bottom: 20px;
 `;
@@ -140,13 +167,13 @@ const Label = styled.Text`
     margin-bottom: 8px;
 `;
 
-const Input = styled.TextInput`
+const Input = styled(TextInput)`
     background-color: ${colors.secondary};
     border-radius: 8px;
     padding: 12px;
-    font-size: 16px;
     color: ${colors.gray100};
-    min-height: ${props => props.multiline ? '120px' : '48px'};
+    font-size: 16px;
+    border: 1px solid ${colors.gray700};
 `;
 
 const SaveButton = styled.TouchableOpacity<{ disabled?: boolean }>`
@@ -162,10 +189,4 @@ const SaveButtonText = styled.Text`
     color: ${colors.gray100};
     font-size: 16px;
     font-weight: bold;
-`;
-
-const LoadingContainer = styled.View`
-    height: 24px;
-    justify-content: center;
-    align-items: center;
 `;

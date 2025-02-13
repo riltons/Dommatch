@@ -1,7 +1,7 @@
 export const colors = {
     // Cores principais
-    primary: '#121214',
-    secondary: '#202024',
+    primary: '#8257E5',
+    secondary: '#1F1E25',
     tertiary: '#323238',
     accent: '#00875F',
     
@@ -14,18 +14,18 @@ export const colors = {
     // Variações de cinza
     gray100: '#E1E1E6',
     gray200: '#C4C4CC',
-    gray300: '#8D8D99',
+    gray300: '#7C7C8A',
     gray400: '#7C7C8A',
     gray500: '#505059',
     gray600: '#323238',
-    gray700: '#29292E',
+    gray700: '#3A3A44',
     gray800: '#202024',
     gray900: '#121214',
     
     // Cores de status
     success: '#04D361',
     warning: '#FBA94C',
-    error: '#F75A68',
+    error: '#FF3333',
     info: '#81D8F7',
     
     // Cores de texto
@@ -37,7 +37,7 @@ export const colors = {
     // Cores de fundo
     backgroundLight: '#202024',
     backgroundMedium: '#29292E',
-    backgroundDark: '#121214',
+    backgroundDark: '#13131A',
     
     // Cores de borda
     border: '#323238',

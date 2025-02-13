@@ -4,6 +4,9 @@ import { StatusBar, Platform } from "react-native";
 import { SafeAreaView } from 'react-native';
 import styled from 'styled-components/native';
 import { colors } from '../styles/colors';
+import { enGB, registerTranslation } from 'react-native-paper-dates';
+
+registerTranslation('en-GB', enGB);
 
 export default function RootLayout() {
     const { session } = useAuth();
