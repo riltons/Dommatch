@@ -61,22 +61,29 @@ export default function SignUp() {
                 options: {
                     data: {
                         name: formData.name.trim()
-                    },
-                    emailRedirectTo: 'rnnotion://login'
+                    }
                 }
             });
 
             if (signUpError) {
-                console.error('Erro ao criar usuário:', signUpError);
-                throw signUpError;
+                if (signUpError.message === 'User already registered') {
+                    Alert.alert('Erro', 'Este e-mail já está cadastrado');
+                } else {
+                    console.error('Erro ao criar usuário:', signUpError);
+                    Alert.alert('Erro', 'Não foi possível criar sua conta. Tente novamente.');
+                }
+                return;
             }
 
             if (!user?.id) {
                 console.error('Usuário não foi criado corretamente');
-                throw new Error('Não foi possível criar o usuário. Tente novamente.');
+                Alert.alert('Erro', 'Não foi possível criar sua conta. Tente novamente.');
+                return;
             }
 
             console.log('Usuário criado com sucesso:', user.id);
+            Alert.alert('Sucesso', 'Conta criada com sucesso! Faça login para continuar.');
+            router.replace('/login');
 
             // Passo 2: Fazer login
             console.log('Fazendo login...');
