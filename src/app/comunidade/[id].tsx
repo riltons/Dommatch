@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Alert, Modal, TouchableOpacity, ActivityIndicator, Animated } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import styled from 'styled-components/native';
 import { colors } from '@/styles/colors';
 import { Feather } from '@expo/vector-icons';
@@ -35,6 +35,7 @@ type Competition = {
     id: string;
     name: string;
     description: string;
+    start_date: string;
 };
 
 export default function CommunityDetails() {
@@ -45,6 +46,7 @@ export default function CommunityDetails() {
     const [allPlayers, setAllPlayers] = useState<Player[]>([]);
     const [competitions, setCompetitions] = useState<Competition[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [showMembers, setShowMembers] = useState(false);
     const [rotateAnim] = useState(new Animated.Value(0));
@@ -62,11 +64,7 @@ export default function CommunityDetails() {
         outputRange: ['0deg', '180deg'],
     });
 
-    useEffect(() => {
-        loadCommunityAndMembers();
-    }, []);
-
-    const loadCommunityAndMembers = async () => {
+    const loadData = async () => {
         try {
             setLoading(true);
             const communityData = await communityService.getById(params.id as string);
@@ -82,8 +80,19 @@ export default function CommunityDetails() {
             console.error(error);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     };
+
+    useEffect(() => {
+        loadData();
+    }, [params.id]);
+
+    useFocusEffect(
+        useCallback(() => {
+            loadData();
+        }, [params.id])
+    );
 
     const handleToggleMember = async (playerId: string, isCurrentMember: boolean) => {
         if (!community) return;
@@ -95,7 +104,7 @@ export default function CommunityDetails() {
             } else {
                 await communityMembersService.addMember(community.id, playerId);
             }
-            await loadCommunityAndMembers();
+            await loadData();
         } catch (error) {
             console.error(error);
         } finally {
@@ -190,6 +199,25 @@ export default function CommunityDetails() {
                                         {item.description}
                                     </CompetitionDescription>
                                 )}
+                                <CompetitionDetails>
+                                    <CompetitionDate>
+                                        <Feather name="calendar" size={14} color={colors.gray300} />
+                                        <CompetitionDateText>
+                                            {new Date(item.start_date).toLocaleDateString('pt-BR')}
+                                        </CompetitionDateText>
+                                    </CompetitionDate>
+                                    <CompetitionStatus>
+                                        {new Date(item.start_date) > new Date() ? (
+                                            <StatusBadge status="upcoming">
+                                                <StatusText>Em breve</StatusText>
+                                            </StatusBadge>
+                                        ) : (
+                                            <StatusBadge status="active">
+                                                <StatusText>Em andamento</StatusText>
+                                            </StatusBadge>
+                                        )}
+                                    </CompetitionStatus>
+                                </CompetitionDetails>
                             </CompetitionInfo>
                             <Feather name="chevron-right" size={24} color={colors.gray300} />
                         </CompetitionCard>
@@ -488,4 +516,38 @@ const CompetitionDescription = styled.Text`
     font-size: 14px;
     color: ${colors.gray300};
     margin-top: 4px;
+`;
+
+const CompetitionDetails = styled.View`
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+`;
+
+const CompetitionDate = styled.View`
+    flex-direction: row;
+    align-items: center;
+`;
+
+const CompetitionDateText = styled.Text`
+    color: ${colors.gray300};
+    font-size: 14px;
+    margin-left: 4px;
+`;
+
+const CompetitionStatus = styled.View`
+    margin-left: 16px;
+`;
+
+const StatusBadge = styled.View<{ status: 'upcoming' | 'active' }>`
+    background-color: ${props => props.status === 'upcoming' ? colors.primary : colors.success};
+    padding: 4px 8px;
+    border-radius: 4px;
+`;
+
+const StatusText = styled.Text`
+    color: ${colors.gray100};
+    font-size: 12px;
+    font-weight: bold;
 `;
