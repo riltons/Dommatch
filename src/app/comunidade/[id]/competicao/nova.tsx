@@ -6,8 +6,7 @@ import { colors } from '@/styles/colors';
 import { Feather } from '@expo/vector-icons';
 import { competitionService } from '@/services/competitionService';
 import { DatePickerInput } from 'react-native-paper-dates';
-import { PaperProvider } from 'react-native-paper';
-import { TextInput } from 'react-native-paper';
+import { PaperProvider, TextInput } from 'react-native-paper';
 
 export default function NovaCompeticao() {
     const router = useRouter();
@@ -66,24 +65,56 @@ export default function NovaCompeticao() {
                 <Content>
                     <FormGroup>
                         <Label>Nome</Label>
-                        <Input
+                        <TextInput
+                            mode="outlined"
                             value={formData.name}
                             onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
                             placeholder="Nome da competição"
-                            placeholderTextColor={colors.gray300}
+                            style={{
+                                backgroundColor: colors.backgroundDark,
+                            }}
+                            theme={{
+                                colors: {
+                                    primary: colors.primary,
+                                    text: colors.gray100,
+                                    placeholder: colors.gray300,
+                                    background: colors.backgroundDark,
+                                    surface: colors.backgroundDark,
+                                    onSurface: colors.gray100,
+                                    outline: colors.gray700,
+                                }
+                            }}
                         />
                     </FormGroup>
 
                     <FormGroup>
                         <Label>Descrição</Label>
-                        <Input
+                        <TextInput
+                            mode="outlined"
                             value={formData.description}
                             onChangeText={(text) => setFormData(prev => ({ ...prev, description: text }))}
                             placeholder="Descrição da competição"
-                            placeholderTextColor={colors.gray300}
                             multiline
                             numberOfLines={4}
                             textAlignVertical="top"
+                            contentStyle={{
+                                paddingTop: 16,
+                                minHeight: 120,
+                            }}
+                            style={{
+                                backgroundColor: colors.backgroundDark,
+                            }}
+                            theme={{
+                                colors: {
+                                    primary: colors.primary,
+                                    text: colors.gray100,
+                                    placeholder: colors.gray300,
+                                    background: colors.backgroundDark,
+                                    surface: colors.backgroundDark,
+                                    onSurface: colors.gray100,
+                                    outline: colors.gray700,
+                                }
+                            }}
                         />
                     </FormGroup>
 
@@ -97,15 +128,15 @@ export default function NovaCompeticao() {
                             inputMode="start"
                             mode="outlined"
                             style={{
-                                backgroundColor: colors.secondary,
+                                backgroundColor: colors.backgroundDark,
                             }}
                             theme={{
                                 colors: {
                                     primary: colors.primary,
                                     text: colors.gray100,
                                     placeholder: colors.gray300,
-                                    background: colors.secondary,
-                                    surface: colors.secondary,
+                                    background: colors.backgroundDark,
+                                    surface: colors.backgroundDark,
                                     onSurface: colors.gray100,
                                     outline: colors.gray700,
                                 }
@@ -165,15 +196,6 @@ const Label = styled.Text`
     font-size: 16px;
     color: ${colors.gray100};
     margin-bottom: 8px;
-`;
-
-const Input = styled(TextInput)`
-    background-color: ${colors.secondary};
-    border-radius: 8px;
-    padding: 12px;
-    color: ${colors.gray100};
-    font-size: 16px;
-    border: 1px solid ${colors.gray700};
 `;
 
 const SaveButton = styled.TouchableOpacity<{ disabled?: boolean }>`
