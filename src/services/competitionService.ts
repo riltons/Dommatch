@@ -7,6 +7,7 @@ export interface Competition {
     community_id: string;
     start_date: string;
     created_at: string;
+    status: 'pending' | 'in_progress' | 'finished';
 }
 
 export interface CreateCompetitionDTO {
@@ -162,5 +163,22 @@ export const competitionService = {
             console.error('Erro ao remover membro da competição:', error);
             throw error;
         }
-    }
+    },
+
+    async startCompetition(id: string) {
+        try {
+            const { data, error } = await supabase
+                .from('competitions')
+                .update({ status: 'in_progress' })
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Erro ao iniciar competição:', error);
+            throw error;
+        }
+    },
 };
