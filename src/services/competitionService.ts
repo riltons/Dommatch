@@ -99,11 +99,12 @@ export const competitionService = {
             const { data, error } = await supabase
                 .from('competition_members')
                 .select(`
-                    id,
-                    player_id,
-                    players (
+                    competition_id,
+                    player:player_id (
                         id,
-                        name
+                        name,
+                        nickname,
+                        phone
                     )
                 `)
                 .eq('competition_id', competitionId);
