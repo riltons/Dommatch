@@ -96,21 +96,32 @@ export const competitionService = {
 
     async listMembers(competitionId: string) {
         try {
-            const { data, error } = await supabase
+            // Primeiro busca os membros da competição
+            const { data: members, error: membersError } = await supabase
                 .from('competition_members')
-                .select(`
-                    competition_id,
-                    player:player_id (
-                        id,
-                        name,
-                        nickname,
-                        phone
-                    )
-                `)
+                .select('*')
                 .eq('competition_id', competitionId);
 
-            if (error) throw error;
-            return data;
+            if (membersError) throw membersError;
+
+            if (!members || members.length === 0) {
+                return [];
+            }
+
+            // Depois busca os detalhes dos jogadores
+            const playerIds = members.map(member => member.player_id);
+            const { data: players, error: playersError } = await supabase
+                .from('players')
+                .select('*')
+                .in('id', playerIds);
+
+            if (playersError) throw playersError;
+
+            // Combina os dados mantendo a estrutura esperada pelo componente
+            return members.map(member => ({
+                ...member,
+                players: players?.find(player => player.id === member.player_id)
+            }));
         } catch (error) {
             console.error('Erro ao listar membros da competição:', error);
             throw error;
