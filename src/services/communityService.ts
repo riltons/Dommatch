@@ -41,6 +41,22 @@ class CommunityService {
         }
     }
 
+    async getById(id: string) {
+        try {
+            const { data, error } = await supabase
+                .from('communities')
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Erro ao buscar comunidade:', error);
+            throw error;
+        }
+    }
+
     async createCommunity(community: CreateCommunityDTO) {
         try {
             const { data: userData, error: userError } = await supabase.auth.getUser();
