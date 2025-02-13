@@ -60,7 +60,7 @@ ALTER TABLE communities ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "communities_select_policy"
 ON communities FOR SELECT
 TO authenticated
-USING (true);
+USING (created_by = auth.uid());
 
 -- Policy for inserting communities (authenticated users can create)
 CREATE POLICY "communities_insert_policy"

@@ -36,12 +36,12 @@ ALTER TABLE players ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "players_select_policy"
 ON players FOR SELECT
 TO authenticated
-USING (true);
+USING (created_by = auth.uid());
 
 CREATE POLICY "players_insert_policy"
 ON players FOR INSERT
 TO authenticated
-WITH CHECK (true);
+WITH CHECK (created_by = auth.uid());
 
 CREATE POLICY "players_update_policy"
 ON players FOR UPDATE

@@ -26,23 +26,53 @@ ALTER TABLE public.community_members ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "community_members_select_policy"
 ON public.community_members FOR SELECT
 TO authenticated
-USING (true);
+USING (
+    EXISTS (
+        SELECT 1 FROM public.players p
+        WHERE p.id = player_id
+        AND p.created_by = auth.uid()
+    )
+);
 
 CREATE POLICY "community_members_insert_policy"
 ON public.community_members FOR INSERT
 TO authenticated
-WITH CHECK (true);
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM public.players p
+        WHERE p.id = player_id
+        AND p.created_by = auth.uid()
+    )
+);
 
 CREATE POLICY "community_members_update_policy"
 ON public.community_members FOR UPDATE
 TO authenticated
-USING (true)
-WITH CHECK (true);
+USING (
+    EXISTS (
+        SELECT 1 FROM public.players p
+        WHERE p.id = player_id
+        AND p.created_by = auth.uid()
+    )
+)
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM public.players p
+        WHERE p.id = player_id
+        AND p.created_by = auth.uid()
+    )
+);
 
 CREATE POLICY "community_members_delete_policy"
 ON public.community_members FOR DELETE
 TO authenticated
-USING (true);
+USING (
+    EXISTS (
+        SELECT 1 FROM public.players p
+        WHERE p.id = player_id
+        AND p.created_by = auth.uid()
+    )
+);
 
 -- Criar índices para melhor performance
 create index if not exists community_members_community_id_idx on public.community_members(community_id);
