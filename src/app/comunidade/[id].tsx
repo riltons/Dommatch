@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Modal, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Alert, Modal, TouchableOpacity, ActivityIndicator, Animated } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import styled from 'styled-components/native';
 import { colors } from '@/styles/colors';
@@ -38,6 +38,21 @@ export default function CommunityDetails() {
     const [allPlayers, setAllPlayers] = useState<Player[]>([]);
     const [loading, setLoading] = useState(true);
     const [modalVisible, setModalVisible] = useState(false);
+    const [showMembers, setShowMembers] = useState(false);
+    const [rotateAnim] = useState(new Animated.Value(0));
+
+    const toggleMembers = () => {
+        setShowMembers(!showMembers);
+        Animated.spring(rotateAnim, {
+            toValue: showMembers ? 0 : 1,
+            useNativeDriver: true,
+        }).start();
+    };
+
+    const rotate = rotateAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0deg', '180deg'],
+    });
 
     useEffect(() => {
         loadCommunityAndMembers();
@@ -70,14 +85,11 @@ export default function CommunityDetails() {
             setLoading(true);
             if (isCurrentMember) {
                 await communityMembersService.removeMember(community.id, playerId);
-                Alert.alert('Sucesso', 'Jogador removido da comunidade');
             } else {
                 await communityMembersService.addMember(community.id, playerId);
-                Alert.alert('Sucesso', 'Jogador adicionado à comunidade');
             }
             await loadCommunityAndMembers();
-        } catch (error: any) {
-            Alert.alert('Erro', error?.message || 'Erro ao gerenciar membro');
+        } catch (error) {
             console.error(error);
         } finally {
             setLoading(false);
@@ -110,30 +122,63 @@ export default function CommunityDetails() {
 
                 <Description>{community.description}</Description>
 
-                <SectionHeader>
-                    <SectionTitle>Membros ({members.length})</SectionTitle>
-                </SectionHeader>
+                <MembersSection>
+                    <MembersHeader 
+                        onPress={toggleMembers}
+                        activeOpacity={0.7}
+                    >
+                        <HeaderLeft>
+                            <SectionTitle>Membros ({members.length})</SectionTitle>
+                            <AnimatedIcon style={{ transform: [{ rotate }] }}>
+                                <Feather name="chevron-down" size={24} color={colors.gray100} />
+                            </AnimatedIcon>
+                        </HeaderLeft>
+                        <ManageButton 
+                            onPress={(e) => {
+                                e.stopPropagation();
+                                setModalVisible(true);
+                            }}
+                            activeOpacity={0.7}
+                        >
+                            <ManageButtonText>Gerenciar</ManageButtonText>
+                            <Feather name="users" size={20} color={colors.gray100} />
+                        </ManageButton>
+                    </MembersHeader>
 
-                <MembersList
-                    data={members}
-                    keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => (
-                        <MemberCard>
-                            <MemberInfo>
-                                <MemberName>{item.players.name}</MemberName>
-                            </MemberInfo>
-                        </MemberCard>
+                    {showMembers && (
+                        <MembersListContainer>
+                            <MembersList
+                                data={members}
+                                keyExtractor={(item) => item.id}
+                                renderItem={({ item }) => (
+                                    <MemberCard>
+                                        <MemberInfo>
+                                            <MemberName>{item.players.name}</MemberName>
+                                        </MemberInfo>
+                                        <TouchableOpacity 
+                                            onPress={() => handleToggleMember(item.player_id, true)}
+                                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                        >
+                                            <Feather name="user-minus" size={20} color={colors.error} />
+                                        </TouchableOpacity>
+                                    </MemberCard>
+                                )}
+                                ListEmptyComponent={
+                                    <EmptyContainer>
+                                        <EmptyText>Nenhum membro encontrado</EmptyText>
+                                    </EmptyContainer>
+                                }
+                            />
+                        </MembersListContainer>
                     )}
-                    ListEmptyComponent={
-                        <EmptyContainer>
-                            <EmptyText>Nenhum membro encontrado</EmptyText>
-                        </EmptyContainer>
-                    }
-                />
+                </MembersSection>
             </Content>
 
-            <FAB onPress={() => setModalVisible(true)}>
-                <Feather name="users" size={24} color={colors.gray100} />
+            <FAB onPress={() => router.push({
+                pathname: '/comunidade/[id]/competicao/nova',
+                params: { id: community.id }
+            })}>
+                <Feather name="award" size={24} color={colors.gray100} />
             </FAB>
 
             <Modal
@@ -145,33 +190,32 @@ export default function CommunityDetails() {
                 <ModalContainer>
                     <ModalContent>
                         <ModalHeader>
-                            <ModalTitle>Gerenciar Membros</ModalTitle>
+                            <ModalTitle>Adicionar Membros</ModalTitle>
                             <TouchableOpacity onPress={() => setModalVisible(false)}>
                                 <Feather name="x" size={24} color={colors.gray100} />
                             </TouchableOpacity>
                         </ModalHeader>
 
                         <PlayersList
-                            data={allPlayers}
+                            data={allPlayers.filter(player => 
+                                !members.some(member => member.player_id === player.id)
+                            )}
                             keyExtractor={(item) => item.id}
-                            renderItem={({ item }) => {
-                                const isCurrentMember = members.some(m => m.player_id === item.id);
-                                return (
-                                    <PlayerCard onPress={() => handleToggleMember(item.id, isCurrentMember)}>
-                                        <PlayerInfo>
-                                            <PlayerName>{item.name}</PlayerName>
-                                        </PlayerInfo>
-                                        <Feather 
-                                            name={isCurrentMember ? "user-minus" : "user-plus"} 
-                                            size={24} 
-                                            color={isCurrentMember ? colors.error : colors.primary} 
-                                        />
-                                    </PlayerCard>
-                                );
-                            }}
+                            renderItem={({ item }) => (
+                                <PlayerCard onPress={() => handleToggleMember(item.id, false)}>
+                                    <PlayerInfo>
+                                        <PlayerName>{item.name}</PlayerName>
+                                    </PlayerInfo>
+                                    <Feather 
+                                        name="user-plus" 
+                                        size={20} 
+                                        color={colors.primary}
+                                    />
+                                </PlayerCard>
+                            )}
                             ListEmptyComponent={
                                 <EmptyContainer>
-                                    <EmptyText>Nenhum jogador encontrado</EmptyText>
+                                    <EmptyText>Nenhum jogador disponível</EmptyText>
                                 </EmptyContainer>
                             }
                         />
@@ -237,16 +281,45 @@ const Description = styled.Text`
     margin-bottom: 24px;
 `;
 
+const MembersSection = styled.View`
+    margin-top: 24px;
+`;
+
+const MembersHeader = styled.TouchableOpacity`
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background-color: ${colors.secondary};
+    border-radius: 8px;
+`;
+
+const HeaderLeft = styled.View`
+    flex-direction: row;
+    align-items: center;
+`;
+
+const AnimatedIcon = styled(Animated.View)`
+    margin-left: 8px;
+`;
+
+const MembersListContainer = styled.View`
+    margin-top: 8px;
+    background-color: ${colors.secondary};
+    border-radius: 8px;
+    padding: 12px;
+`;
+
 const MembersList = styled.FlatList`
-    flex: 1;
+    flex-grow: 0;
 `;
 
 const MemberCard = styled.View`
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    padding: 16px;
-    background-color: ${colors.secondary};
+    padding: 12px;
+    background-color: ${colors.backgroundDark};
     border-radius: 8px;
     margin-bottom: 8px;
 `;
@@ -340,4 +413,19 @@ const FAB = styled.TouchableOpacity`
     shadow-offset: 0px 2px;
     shadow-opacity: 0.25;
     shadow-radius: 3.84px;
+`;
+
+const ManageButton = styled.TouchableOpacity`
+    flex-direction: row;
+    align-items: center;
+    background-color: ${colors.primary};
+    padding: 8px 16px;
+    border-radius: 8px;
+`;
+
+const ManageButtonText = styled.Text`
+    color: ${colors.gray100};
+    font-size: 14px;
+    font-weight: 500;
+    margin-right: 8px;
 `;
