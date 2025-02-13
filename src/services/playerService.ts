@@ -6,7 +6,7 @@ export interface Player {
     nickname: string;
     phone: string;
     created_at: string;
-    user_id: string;
+    created_by: string;
 }
 
 interface CreatePlayerDTO {
@@ -53,7 +53,7 @@ class PlayerService {
                 .from('players')
                 .insert([{
                     ...data,
-                    user_id: userData.user.id
+                    created_by: userData.user.id
                 }])
                 .select()
                 .single();

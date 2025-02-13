@@ -35,31 +35,21 @@ ALTER TABLE players ENABLE ROW LEVEL SECURITY;
 -- Criar políticas de segurança
 CREATE POLICY "players_select_policy"
 ON players FOR SELECT
-USING (
-    created_by = auth.uid() OR
-    EXISTS (
-        SELECT 1 FROM community_members cm
-        JOIN communities c ON c.id = cm.community_id
-        WHERE cm.player_id IN (
-            SELECT id FROM players WHERE created_by = auth.uid()
-        )
-        AND EXISTS (
-            SELECT 1 FROM community_members
-            WHERE community_id = c.id
-            AND player_id = players.id
-        )
-    )
-);
+TO authenticated
+USING (true);
 
 CREATE POLICY "players_insert_policy"
 ON players FOR INSERT
-WITH CHECK (created_by = auth.uid());
+TO authenticated
+WITH CHECK (true);
 
 CREATE POLICY "players_update_policy"
 ON players FOR UPDATE
+TO authenticated
 USING (created_by = auth.uid())
 WITH CHECK (created_by = auth.uid());
 
 CREATE POLICY "players_delete_policy"
 ON players FOR DELETE
+TO authenticated
 USING (created_by = auth.uid());

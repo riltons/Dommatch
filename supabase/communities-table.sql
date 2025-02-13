@@ -59,29 +59,24 @@ ALTER TABLE communities ENABLE ROW LEVEL SECURITY;
 -- Policy for viewing communities (everyone can view)
 CREATE POLICY "communities_select_policy"
 ON communities FOR SELECT
-USING (
-    created_by = auth.uid() OR
-    EXISTS (
-        SELECT 1 FROM community_members cm
-        WHERE cm.community_id = communities.id
-        AND cm.player_id IN (
-            SELECT id FROM players WHERE created_by = auth.uid()
-        )
-    )
-);
+TO authenticated
+USING (true);
 
 -- Policy for inserting communities (authenticated users can create)
 CREATE POLICY "communities_insert_policy"
 ON communities FOR INSERT
+TO authenticated
 WITH CHECK (created_by = auth.uid());
 
 -- Policy for updating communities (only owner can update)
 CREATE POLICY "communities_update_policy"
 ON communities FOR UPDATE
+TO authenticated
 USING (created_by = auth.uid())
 WITH CHECK (created_by = auth.uid());
 
 -- Policy for deleting communities (only owner can delete)
 CREATE POLICY "communities_delete_policy"
 ON communities FOR DELETE
+TO authenticated
 USING (created_by = auth.uid());

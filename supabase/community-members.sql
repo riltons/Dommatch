@@ -23,66 +23,26 @@ comment on column public.community_members.updated_at is 'Data de atualização 
 ALTER TABLE public.community_members ENABLE ROW LEVEL SECURITY;
 
 -- Criar políticas de segurança
-CREATE POLICY "Usuários podem ver membros das comunidades que participam"
+CREATE POLICY "community_members_select_policy"
 ON public.community_members FOR SELECT
-USING (
-    EXISTS (
-        SELECT 1 FROM public.communities c
-        WHERE c.id = community_id
-        AND (
-            c.created_by = auth.uid() OR
-            EXISTS (
-                SELECT 1 FROM public.community_members cm
-                WHERE cm.community_id = c.id
-                AND cm.player_id IN (
-                    SELECT id FROM public.players WHERE created_by = auth.uid()
-                )
-            )
-        )
-    )
-);
+TO authenticated
+USING (true);
 
-CREATE POLICY "Usuários podem adicionar seus jogadores às comunidades"
+CREATE POLICY "community_members_insert_policy"
 ON public.community_members FOR INSERT
-WITH CHECK (
-    EXISTS (
-        SELECT 1 FROM public.players p
-        WHERE p.id = player_id
-        AND p.created_by = auth.uid()
-    )
-);
+TO authenticated
+WITH CHECK (true);
 
-CREATE POLICY "Apenas admin pode atualizar membros"
+CREATE POLICY "community_members_update_policy"
 ON public.community_members FOR UPDATE
-USING (
-    EXISTS (
-        SELECT 1 FROM public.communities c
-        WHERE c.id = community_id
-        AND c.created_by = auth.uid()
-    )
-)
-WITH CHECK (
-    EXISTS (
-        SELECT 1 FROM public.communities c
-        WHERE c.id = community_id
-        AND c.created_by = auth.uid()
-    )
-);
+TO authenticated
+USING (true)
+WITH CHECK (true);
 
-CREATE POLICY "Usuários podem remover seus jogadores"
+CREATE POLICY "community_members_delete_policy"
 ON public.community_members FOR DELETE
-USING (
-    EXISTS (
-        SELECT 1 FROM public.players p
-        WHERE p.id = player_id
-        AND p.created_by = auth.uid()
-    ) OR
-    EXISTS (
-        SELECT 1 FROM public.communities c
-        WHERE c.id = community_id
-        AND c.created_by = auth.uid()
-    )
-);
+TO authenticated
+USING (true);
 
 -- Criar índices para melhor performance
 create index if not exists community_members_community_id_idx on public.community_members(community_id);
