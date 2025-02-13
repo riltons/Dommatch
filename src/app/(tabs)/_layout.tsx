@@ -1,93 +1,57 @@
-import { Tabs } from "expo-router"
-import { MaterialCommunityIcons } from "@expo/vector-icons"
-import { colors } from "@/styles/colors"
+import { Tabs } from 'expo-router';
+import { colors } from '@/styles/colors';
+import { Feather } from '@expo/vector-icons';
 
 export default function TabRoutesLayout() {
     return (
-        <Tabs screenOptions={{
-            headerShown: false,
-            tabBarStyle: {
-                backgroundColor: colors.secondary,
-                borderTopWidth: 0,
-                height: 75,
-                paddingBottom: 12,
-                paddingTop: 8,
-                shadowColor: colors.primary,
-                shadowOffset: {
-                    width: 0,
-                    height: -2,
+        <Tabs
+            screenOptions={{
+                headerShown: false,
+                tabBarStyle: {
+                    backgroundColor: colors.backgroundDark,
+                    borderTopWidth: 0,
+                    elevation: 0,
                 },
-                shadowOpacity: 0.1,
-                shadowRadius: 3,
-                elevation: 8,
-            },
-            tabBarActiveTintColor: colors.accent,
-            tabBarInactiveTintColor: `${colors.accent}80`,
-            tabBarLabelStyle: {
-                fontWeight: '500',
-                marginTop: 4,
-                fontSize: 12,
-                paddingBottom: 12,
-            },
-            tabBarIconStyle: {
-                marginTop: 4,
-            },
-        }}>
+                tabBarActiveTintColor: colors.primary,
+                tabBarInactiveTintColor: colors.gray300,
+            }}
+        >
             <Tabs.Screen
                 name="dashboard"
                 options={{
-                    tabBarLabel: "Dashboard",
-                    tabBarIcon: ({ color, size }) => (
-                        <MaterialCommunityIcons 
-                            name="view-dashboard" 
-                            size={size} 
-                            color={color}
-                        />
+                    title: 'Dashboard',
+                    tabBarIcon: ({ size, color }) => (
+                        <Feather name="grid" size={size} color={color} />
                     ),
                 }}
             />
-
             <Tabs.Screen
                 name="comunidades"
                 options={{
-                    tabBarLabel: "Comunidades",
-                    tabBarIcon: ({ color, size }) => (
-                        <MaterialCommunityIcons 
-                            name="account-group" 
-                            size={size} 
-                            color={color}
-                        />
+                    title: 'Comunidades',
+                    tabBarIcon: ({ size, color }) => (
+                        <Feather name="users" size={size} color={color} />
                     ),
                 }}
             />
-
             <Tabs.Screen
                 name="competicoes"
                 options={{
-                    tabBarLabel: "Competições",
-                    tabBarIcon: ({ color, size }) => (
-                        <MaterialCommunityIcons 
-                            name="trophy" 
-                            size={size} 
-                            color={color}
-                        />
+                    title: 'Competições',
+                    tabBarIcon: ({ size, color }) => (
+                        <Feather name="award" size={size} color={color} />
                     ),
                 }}
             />
-
             <Tabs.Screen
                 name="jogadores"
                 options={{
-                    tabBarLabel: "Jogadores",
-                    tabBarIcon: ({ color, size }) => (
-                        <MaterialCommunityIcons 
-                            name="account" 
-                            size={size} 
-                            color={color}
-                        />
+                    title: 'Jogadores',
+                    tabBarIcon: ({ size, color }) => (
+                        <Feather name="user" size={size} color={color} />
                     ),
                 }}
             />
         </Tabs>
-    )
+    );
 }
