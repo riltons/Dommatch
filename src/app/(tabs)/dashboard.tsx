@@ -9,6 +9,8 @@ import { useRouter } from "expo-router";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { LineChart } from "react-native-chart-kit";
+import { useAuth } from "@/hooks/useAuth";
+import { statisticsService } from "@/services/statisticsService";
 
 interface Stats {
     totalGames: number;
@@ -207,11 +209,12 @@ const ActivityTime = styled.Text`
 
 const Dashboard: React.FC = () => {
     const router = useRouter();
+    const { session } = useAuth();
     const [stats, setStats] = useState<Stats>({
-        totalGames: 156,
-        totalCompetitions: 12,
-        totalPlayers: 24,
-        averageScore: 4.8
+        totalGames: 0,
+        totalCompetitions: 0,
+        totalPlayers: 0,
+        averageScore: 0
     });
 
     const [topPlayers, setTopPlayers] = useState<Player[]>([
@@ -285,6 +288,17 @@ const Dashboard: React.FC = () => {
             stroke: colors.primary
         }
     };
+
+    useEffect(() => {
+        async function loadStatistics() {
+            if (session?.user?.id) {
+                const userStats = await statisticsService.getUserStatistics(session.user.id);
+                setStats(userStats);
+            }
+        }
+
+        loadStatistics();
+    }, [session?.user?.id]);
 
     return (
         <PageTransition>
