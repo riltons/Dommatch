@@ -59,7 +59,10 @@ export default function CompetitionDetails() {
     const router = useRouter();
     const { id: communityId, competitionId } = useLocalSearchParams();
     const [competition, setCompetition] = useState<Competition | null>(null);
-    const [games, setGames] = useState<Game[]>([]);
+    const [games, setGames] = useState<(Game & { 
+        team1_players?: { id: string; name: string; }[];
+        team2_players?: { id: string; name: string; }[];
+    })[]>([]);
     const [members, setMembers] = useState<Member[]>([]);
     const [communityMembers, setCommunityMembers] = useState<Member[]>([]);
     const [isAddMemberModalVisible, setIsAddMemberModalVisible] = useState(false);
@@ -67,6 +70,8 @@ export default function CompetitionDetails() {
     const [canFinish, setCanFinish] = useState(false);
     const [loading, setLoading] = useState(false);
     const [results, setResults] = useState<CompetitionResult | null>(null);
+    const [expandedGames, setExpandedGames] = useState(false);
+    const [isGamesModalVisible, setIsGamesModalVisible] = useState(false);
 
     const loadCompetitionAndMembers = useCallback(async () => {
         try {
@@ -95,20 +100,20 @@ export default function CompetitionDetails() {
 
     const loadGames = useCallback(async () => {
         try {
-            const gamesData = await gameService.listByCompetition(competitionId as string);
+            const gamesData = await gameService.listByCompetition(competitionId);
             const gamesWithPlayers = await Promise.all(gamesData.map(async (game) => {
                 const team1Players = await Promise.all(game.team1.map(async (playerId) => {
-                    const player = await playerService.getById(playerId);
-                    return player;
+                    const member = members.find(m => m.player_id === playerId);
+                    return member?.players || { id: playerId, name: 'Jogador não encontrado' };
                 }));
                 const team2Players = await Promise.all(game.team2.map(async (playerId) => {
-                    const player = await playerService.getById(playerId);
-                    return player;
+                    const member = members.find(m => m.player_id === playerId);
+                    return member?.players || { id: playerId, name: 'Jogador não encontrado' };
                 }));
                 return {
                     ...game,
                     team1_players: team1Players,
-                    team2_players: team2Players
+                    team2_players: team2Players,
                 };
             }));
             setGames(gamesWithPlayers);
@@ -116,7 +121,13 @@ export default function CompetitionDetails() {
             console.error('Erro ao carregar jogos:', error);
             Alert.alert('Erro', 'Não foi possível carregar os jogos');
         }
-    }, [competitionId]);
+    }, [competitionId, members]);
+
+    useEffect(() => {
+        if (members.length > 0) {
+            loadGames();
+        }
+    }, [loadGames, members]);
 
     useEffect(() => {
         checkCanFinish();
@@ -253,9 +264,7 @@ export default function CompetitionDetails() {
                                         <TeamScore>
                                             <Score>{item.team1_score}</Score>
                                             <TeamName>
-                                                {item.team1_players?.map((player, index) => (
-                                                    player.name + (index < item.team1_players.length - 1 ? ' e ' : '')
-                                                ))}
+                                                {item.team1_players?.map(player => player.name).join(' e ')}
                                             </TeamName>
                                         </TeamScore>
                                         
@@ -264,9 +273,7 @@ export default function CompetitionDetails() {
                                         <TeamScore>
                                             <Score>{item.team2_score}</Score>
                                             <TeamName>
-                                                {item.team2_players?.map((player, index) => (
-                                                    player.name + (index < item.team2_players.length - 1 ? ' e ' : '')
-                                                ))}
+                                                {item.team2_players?.map(player => player.name).join(' e ')}
                                             </TeamName>
                                         </TeamScore>
                                     </GameTeams>
@@ -327,6 +334,13 @@ export default function CompetitionDetails() {
                                 <>
                                     <SectionHeader>
                                         <SectionTitle>Jogos</SectionTitle>
+                                        <TouchableOpacity onPress={() => setIsGamesModalVisible(true)}>
+                                            <Feather 
+                                                name="list" 
+                                                size={24} 
+                                                color={colors.primary} 
+                                            />
+                                        </TouchableOpacity>
                                     </SectionHeader>
 
                                     {games.length === 0 ? (
@@ -346,23 +360,19 @@ export default function CompetitionDetails() {
                                                     onPress={() => router.push(`/comunidade/${communityId}/competicao/${competitionId}/jogo/${item.id}`)}
                                                 >
                                                     <GameTeams>
-                                                        <TeamScore>
+                                                        <TeamScore winner={item.status === 'finished' && item.team1_score > item.team2_score}>
                                                             <Score>{item.team1_score}</Score>
                                                             <TeamName>
-                                                                {item.team1_players?.map((player, index) => (
-                                                                    player.name + (index < item.team1_players.length - 1 ? ' e ' : '')
-                                                                ))}
+                                                                {item.team1_players?.map(player => player.name).join(' e ')}
                                                             </TeamName>
                                                         </TeamScore>
                                                         
                                                         <Versus>X</Versus>
                                                         
-                                                        <TeamScore>
+                                                        <TeamScore winner={item.status === 'finished' && item.team2_score > item.team1_score}>
                                                             <Score>{item.team2_score}</Score>
                                                             <TeamName>
-                                                                {item.team2_players?.map((player, index) => (
-                                                                    player.name + (index < item.team2_players.length - 1 ? ' e ' : '')
-                                                                ))}
+                                                                {item.team2_players?.map(player => player.name).join(' e ')}
                                                             </TeamName>
                                                         </TeamScore>
                                                     </GameTeams>
@@ -372,8 +382,26 @@ export default function CompetitionDetails() {
                                                         {item.status === 'in_progress' && 'Em Andamento'}
                                                         {item.status === 'finished' && 'Finalizado'}
                                                     </GameStatus>
+
+                                                    {expandedGames && item.status === 'finished' && (
+                                                        <GameDetails>
+                                                            {(item.team1_score === 6 && item.team2_score === 0) && (
+                                                                <BuchudaTag>Buchuda para o Time 1! 🎉</BuchudaTag>
+                                                            )}
+                                                            {(item.team2_score === 6 && item.team1_score === 0) && (
+                                                                <BuchudaTag>Buchuda para o Time 2! 🎉</BuchudaTag>
+                                                            )}
+                                                            {item.team1_was_losing_5_0 && (
+                                                                <BuchudaTag>Buchuda de Ré para o Time 1! 🔄</BuchudaTag>
+                                                            )}
+                                                            {item.team2_was_losing_5_0 && (
+                                                                <BuchudaTag>Buchuda de Ré para o Time 2! 🔄</BuchudaTag>
+                                                            )}
+                                                        </GameDetails>
+                                                    )}
                                                 </GameCard>
                                             )}
+                                            contentContainerStyle={{ padding: 16 }}
                                         />
                                     )}
                                 </>
@@ -390,6 +418,79 @@ export default function CompetitionDetails() {
             )}
 
             <Modal
+                visible={isGamesModalVisible}
+                animationType="slide"
+                onRequestClose={() => setIsGamesModalVisible(false)}
+            >
+                <ModalContainer>
+                    <ModalHeader>
+                        <HeaderTitle>Lista de Jogos</HeaderTitle>
+                        <CloseButton onPress={() => setIsGamesModalVisible(false)}>
+                            <Feather name="x" size={24} color={colors.gray100} />
+                        </CloseButton>
+                    </ModalHeader>
+
+                    <ModalContent>
+                        <GamesList
+                            data={games}
+                            keyExtractor={(item) => item.id}
+                            renderItem={({ item }) => (
+                                <ModalGameCard 
+                                    key={item.id}
+                                    onPress={() => {
+                                        setIsGamesModalVisible(false);
+                                        router.push(`/comunidade/${communityId}/competicao/${competitionId}/jogo/${item.id}`);
+                                    }}
+                                >
+                                    <GameTeams>
+                                        <TeamScore winner={item.status === 'finished' && item.team1_score > item.team2_score}>
+                                            <Score>{item.team1_score}</Score>
+                                            <TeamName>
+                                                {item.team1_players?.map(player => player.name).join(' e ')}
+                                            </TeamName>
+                                        </TeamScore>
+                                        
+                                        <Versus>X</Versus>
+                                        
+                                        <TeamScore winner={item.status === 'finished' && item.team2_score > item.team1_score}>
+                                            <Score>{item.team2_score}</Score>
+                                            <TeamName>
+                                                {item.team2_players?.map(player => player.name).join(' e ')}
+                                            </TeamName>
+                                        </TeamScore>
+                                    </GameTeams>
+
+                                    <GameStatus status={item.status}>
+                                        {item.status === 'pending' && 'Aguardando Início'}
+                                        {item.status === 'in_progress' && 'Em Andamento'}
+                                        {item.status === 'finished' && 'Finalizado'}
+                                    </GameStatus>
+
+                                    {item.status === 'finished' && (
+                                        <GameDetails>
+                                            {(item.team1_score === 6 && item.team2_score === 0) && (
+                                                <BuchudaTag>Buchuda para {item.team1_players?.map(player => player.name).join(' e ')}! 🎉</BuchudaTag>
+                                            )}
+                                            {(item.team2_score === 6 && item.team1_score === 0) && (
+                                                <BuchudaTag>Buchuda para {item.team2_players?.map(player => player.name).join(' e ')}! 🎉</BuchudaTag>
+                                            )}
+                                            {item.team1_was_losing_5_0 && (
+                                                <BuchudaTag>Buchuda de Ré para {item.team1_players?.map(player => player.name).join(' e ')}! 🔄</BuchudaTag>
+                                            )}
+                                            {item.team2_was_losing_5_0 && (
+                                                <BuchudaTag>Buchuda de Ré para {item.team2_players?.map(player => player.name).join(' e ')}! 🔄</BuchudaTag>
+                                            )}
+                                        </GameDetails>
+                                    )}
+                                </ModalGameCard>
+                            )}
+                            contentContainerStyle={{ padding: 16 }}
+                        />
+                    </ModalContent>
+                </ModalContainer>
+            </Modal>
+
+            <Modal
                 animationType="slide"
                 transparent={true}
                 visible={isAddMemberModalVisible}
@@ -403,7 +504,6 @@ export default function CompetitionDetails() {
                         }}
                     >
                         <ModalHeader>
-                            <ModalTitle>Gerenciar Membros</ModalTitle>
                             <CloseButton onPress={() => setIsAddMemberModalVisible(false)}>
                                 <Feather name="x" size={24} color={colors.gray100} />
                             </CloseButton>
@@ -563,29 +663,26 @@ const MemberName = styled.Text`
 
 const ModalContainer = styled.View`
     flex: 1;
-    background-color: rgba(0, 0, 0, 0.5);
-    justify-content: flex-end;
-`;
-
-const ModalContent = styled.View`
-    width: 90%;
-    height: 80%;
     background-color: ${colors.backgroundDark};
-    border-radius: 8px;
-    padding: 16px;
 `;
 
 const ModalHeader = styled.View`
     flex-direction: row;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    justify-content: space-between;
+    padding: 20px;
+    background-color: ${colors.backgroundMedium};
 `;
 
-const ModalTitle = styled.Text`
-    font-size: 20px;
-    font-weight: bold;
-    color: ${colors.gray100};
+const ModalContent = styled.View`
+    flex: 1;
+`;
+
+const ModalGameCard = styled(TouchableOpacity)`
+    background-color: ${colors.backgroundMedium};
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
 `;
 
 const ManageButton = styled.TouchableOpacity`
@@ -639,9 +736,12 @@ const GameTeams = styled.View`
     margin-bottom: 8px;
 `;
 
-const TeamScore = styled.View`
-    flex: 1;
+const TeamScore = styled.View<{ winner?: boolean }>`
     align-items: center;
+    flex: 1;
+    background-color: ${props => props.winner ? colors.primary + '20' : 'transparent'};
+    padding: 8px;
+    border-radius: 8px;
 `;
 
 const Score = styled.Text`
@@ -752,4 +852,18 @@ const NewGameButton = styled.TouchableOpacity`
     justify-content: center;
     elevation: 8;
     z-index: 999;
+`;
+
+const GameDetails = styled.View`
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top-width: 1px;
+    border-top-color: ${colors.gray700};
+`;
+
+const BuchudaTag = styled.Text`
+    color: ${colors.primary};
+    font-size: 14px;
+    margin-top: 4px;
+    text-align: center;
 `;
