@@ -20,29 +20,31 @@ export default function RootLayout() {
                 translucent
             />
             <Stack screenOptions={{ headerShown: false }}>
-                {/* Rotas públicas */}
-                <Stack.Screen
-                    name="login"
-                    options={{
-                        title: 'Login'
-                    }}
-                />
-                <Stack.Screen
-                    name="register"
-                    options={{
-                        title: 'Criar Conta'
-                    }} 
-                />
-                
-                {/* Rotas protegidas */}
-                <Stack.Screen 
-                    name="(tabs)" 
-                    options={{ 
-                        headerShown: false,
-                        // Redireciona para login se não estiver autenticado
-                        href: session ? undefined : '/login'
-                    }} 
-                />
+                {!session ? (
+                    // Rotas públicas
+                    <>
+                        <Stack.Screen
+                            name="login"
+                            options={{
+                                title: 'Login'
+                            }}
+                        />
+                        <Stack.Screen
+                            name="register"
+                            options={{
+                                title: 'Criar Conta'
+                            }} 
+                        />
+                    </>
+                ) : (
+                    // Rotas protegidas
+                    <Stack.Screen 
+                        name="(pages)" 
+                        options={{ 
+                            headerShown: false,
+                        }} 
+                    />
+                )}
             </Stack>
         </SafeContainer>
     );
@@ -51,5 +53,5 @@ export default function RootLayout() {
 const SafeContainer = styled(SafeAreaView)<{ statusBarHeight: number }>`
     flex: 1;
     background-color: ${colors.backgroundDark};
-    margin-top: ${props => Platform.OS === 'android' ? Math.floor(props.statusBarHeight / 2) : 0}px;
+    padding-top: ${Platform.OS === 'android' ? props => props.statusBarHeight : 0}px;
 `;

@@ -15,7 +15,15 @@ export default function TabRoutesLayout() {
                     height: 70,
                 },
                 tabBarActiveTintColor: colors.primary,
-                tabBarInactiveTintColor: colors.gray300,
+                tabBarInactiveTintColor: colors.gray100,
+                tabBarLabelStyle: {
+                    fontSize: 12,
+                    fontWeight: '500',
+                    marginTop: 4,
+                },
+                tabBarIconStyle: {
+                    marginTop: 4,
+                },
             }}
         >
             <Tabs.Screen
@@ -23,7 +31,7 @@ export default function TabRoutesLayout() {
                 options={{
                     title: 'Dashboard',
                     tabBarIcon: ({ size, color }) => (
-                        <Feather name="grid" size={size} color={color} />
+                        <Feather name="grid" size={24} color={color} />
                     ),
                 }}
             />
@@ -32,7 +40,7 @@ export default function TabRoutesLayout() {
                 options={{
                     title: 'Comunidades',
                     tabBarIcon: ({ size, color }) => (
-                        <Feather name="users" size={size} color={color} />
+                        <Feather name="users" size={24} color={color} />
                     ),
                 }}
             />
@@ -41,7 +49,7 @@ export default function TabRoutesLayout() {
                 options={{
                     title: 'Competições',
                     tabBarIcon: ({ size, color }) => (
-                        <Feather name="award" size={size} color={color} />
+                        <Feather name="award" size={24} color={color} />
                     ),
                 }}
             />
@@ -50,7 +58,7 @@ export default function TabRoutesLayout() {
                 options={{
                     title: 'Jogadores',
                     tabBarIcon: ({ size, color }) => (
-                        <Feather name="user" size={size} color={color} />
+                        <Feather name="user" size={24} color={color} />
                     ),
                 }}
             />

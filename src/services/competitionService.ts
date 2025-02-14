@@ -17,6 +17,26 @@ export interface CreateCompetitionDTO {
     start_date: string;
 }
 
+export interface CompetitionResult {
+    players: {
+        id: string;
+        name: string;
+        score: number;
+        wins: number;
+        losses: number;
+        buchudas: number;
+        buchudasDeRe: number;
+    }[];
+    pairs: {
+        players: string[];
+        score: number;
+        wins: number;
+        losses: number;
+        buchudas: number;
+        buchudasDeRe: number;
+    }[];
+}
+
 export const competitionService = {
     async create(data: CreateCompetitionDTO) {
         try {
@@ -197,4 +217,199 @@ export const competitionService = {
             throw error;
         }
     },
+
+    async canFinishCompetition(id: string): Promise<boolean> {
+        try {
+            const { data: games, error } = await supabase
+                .from('games')
+                .select('status')
+                .eq('competition_id', id);
+
+            if (error) throw error;
+            if (!games || games.length === 0) return false;
+
+            // Verifica se há pelo menos um jogo finalizado
+            const hasFinishedGames = games.some(game => game.status === 'finished');
+            
+            // Verifica se não há jogos pendentes ou em andamento
+            const hasUnfinishedGames = games.some(game => 
+                game.status === 'pending' || game.status === 'in_progress'
+            );
+
+            // Só pode encerrar se tiver jogos finalizados E não tiver jogos não finalizados
+            return hasFinishedGames && !hasUnfinishedGames;
+        } catch (error) {
+            console.error('Erro ao verificar status da competição:', error);
+            throw error;
+        }
+    },
+
+    async finishCompetition(id: string): Promise<CompetitionResult> {
+        try {
+            // Busca todos os jogos da competição
+            const { data: games, error: gamesError } = await supabase
+                .from('games')
+                .select('*')
+                .eq('competition_id', id);
+
+            if (gamesError) throw gamesError;
+
+            // Inicializa os resultados
+            const playerStats: Record<string, {
+                score: number;
+                wins: number;
+                losses: number;
+                buchudas: number;
+                buchudasDeRe: number;
+                pairs: Set<string>;
+            }> = {};
+
+            const pairStats: Record<string, {
+                score: number;
+                wins: number;
+                losses: number;
+                buchudas: number;
+                buchudasDeRe: number;
+            }> = {};
+
+            // Processa cada jogo
+            for (const game of games) {
+                if (game.status !== 'finished') continue;
+
+                // Inicializa estatísticas dos jogadores se necessário
+                [...game.team1, ...game.team2].forEach(playerId => {
+                    if (!playerStats[playerId]) {
+                        playerStats[playerId] = {
+                            score: 0,
+                            wins: 0,
+                            losses: 0,
+                            buchudas: 0,
+                            buchudasDeRe: 0,
+                            pairs: new Set()
+                        };
+                    }
+                });
+
+                // Cria chaves para as duplas
+                const team1Key = game.team1.sort().join('_');
+                const team2Key = game.team2.sort().join('_');
+
+                // Inicializa estatísticas das duplas se necessário
+                if (!pairStats[team1Key]) {
+                    pairStats[team1Key] = {
+                        score: 0,
+                        wins: 0,
+                        losses: 0,
+                        buchudas: 0,
+                        buchudasDeRe: 0
+                    };
+                }
+                if (!pairStats[team2Key]) {
+                    pairStats[team2Key] = {
+                        score: 0,
+                        wins: 0,
+                        losses: 0,
+                        buchudas: 0,
+                        buchudasDeRe: 0
+                    };
+                }
+
+                // Registra as duplas para cada jogador
+                game.team1.forEach(playerId => {
+                    playerStats[playerId].pairs.add(team1Key);
+                });
+                game.team2.forEach(playerId => {
+                    playerStats[playerId].pairs.add(team2Key);
+                });
+
+                // Atualiza estatísticas baseado no resultado
+                if (game.team1_score > game.team2_score) {
+                    // Time 1 venceu
+                    game.team1.forEach(playerId => {
+                        playerStats[playerId].wins++;
+                        playerStats[playerId].score += game.team1_score;
+                    });
+                    game.team2.forEach(playerId => {
+                        playerStats[playerId].losses++;
+                        playerStats[playerId].score += game.team2_score;
+                    });
+                    pairStats[team1Key].wins++;
+                    pairStats[team1Key].score += game.team1_score;
+                    pairStats[team2Key].losses++;
+                    pairStats[team2Key].score += game.team2_score;
+
+                    if (game.team1_score === 6 && game.team2_score === 0) {
+                        game.team1.forEach(playerId => playerStats[playerId].buchudas++);
+                        pairStats[team1Key].buchudas++;
+                    }
+                    if (game.team2_was_losing_5_0) {
+                        game.team1.forEach(playerId => playerStats[playerId].buchudasDeRe++);
+                        pairStats[team1Key].buchudasDeRe++;
+                    }
+                } else if (game.team2_score > game.team1_score) {
+                    // Time 2 venceu
+                    game.team2.forEach(playerId => {
+                        playerStats[playerId].wins++;
+                        playerStats[playerId].score += game.team2_score;
+                    });
+                    game.team1.forEach(playerId => {
+                        playerStats[playerId].losses++;
+                        playerStats[playerId].score += game.team1_score;
+                    });
+                    pairStats[team2Key].wins++;
+                    pairStats[team2Key].score += game.team2_score;
+                    pairStats[team1Key].losses++;
+                    pairStats[team1Key].score += game.team1_score;
+
+                    if (game.team2_score === 6 && game.team1_score === 0) {
+                        game.team2.forEach(playerId => playerStats[playerId].buchudas++);
+                        pairStats[team2Key].buchudas++;
+                    }
+                    if (game.team1_was_losing_5_0) {
+                        game.team2.forEach(playerId => playerStats[playerId].buchudasDeRe++);
+                        pairStats[team2Key].buchudasDeRe++;
+                    }
+                }
+            }
+
+            // Busca os nomes dos jogadores
+            const playerIds = Object.keys(playerStats);
+            const players = await Promise.all(
+                playerIds.map(async (id) => {
+                    const player = await this.getPlayerById(id);
+                    return {
+                        id,
+                        name: player.name,
+                        score: playerStats[id].score,
+                        wins: playerStats[id].wins,
+                        losses: playerStats[id].losses,
+                        buchudas: playerStats[id].buchudas,
+                        buchudasDeRe: playerStats[id].buchudasDeRe
+                    };
+                })
+            );
+
+            // Formata as estatísticas das duplas
+            const pairs = Object.entries(pairStats).map(([key, stats]) => ({
+                players: key.split('_'),
+                ...stats
+            }));
+
+            // Atualiza o status da competição para finished
+            const { error: updateError } = await supabase
+                .from('competitions')
+                .update({ status: 'finished' })
+                .eq('id', id);
+
+            if (updateError) throw updateError;
+
+            return {
+                players: players.sort((a, b) => b.score - a.score),
+                pairs: pairs.sort((a, b) => b.score - a.score)
+            };
+        } catch (error) {
+            console.error('Erro ao finalizar competição:', error);
+            throw error;
+        }
+    }
 };

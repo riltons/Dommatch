@@ -34,6 +34,26 @@ interface Member {
     };
 }
 
+interface CompetitionResult {
+    players: {
+        id: string;
+        name: string;
+        score: number;
+        wins: number;
+        losses: number;
+        buchudas: number;
+        buchudasDeRe: number;
+    }[];
+    pairs: {
+        players: string[];
+        score: number;
+        wins: number;
+        losses: number;
+        buchudas: number;
+        buchudasDeRe: number;
+    }[];
+}
+
 export default function CompetitionDetails() {
     const router = useRouter();
     const { id: communityId, competitionId } = useLocalSearchParams();
@@ -44,6 +64,9 @@ export default function CompetitionDetails() {
     const [isMembersExpanded, setIsMembersExpanded] = useState(false);
     const [isAddMemberModalVisible, setIsAddMemberModalVisible] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [canFinish, setCanFinish] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [results, setResults] = useState<CompetitionResult | null>(null);
 
     const loadCompetitionAndMembers = useCallback(async () => {
         try {
@@ -93,7 +116,31 @@ export default function CompetitionDetails() {
 
     useEffect(() => {
         loadCompetitionAndMembers();
+        checkCanFinish();
     }, []);
+
+    const checkCanFinish = async () => {
+        try {
+            const canFinish = await competitionService.canFinishCompetition(competitionId as string);
+            setCanFinish(canFinish);
+        } catch (error) {
+            console.error('Erro ao verificar status:', error);
+        }
+    };
+
+    const handleFinishCompetition = async () => {
+        try {
+            setLoading(true);
+            const results = await competitionService.finishCompetition(competitionId as string);
+            setResults(results);
+            loadCompetitionAndMembers(); // Recarrega para atualizar o status
+        } catch (error) {
+            console.error('Erro ao finalizar competição:', error);
+            Alert.alert('Erro', 'Não foi possível finalizar a competição');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleToggleMember = async (playerId: string, isCurrentMember: boolean) => {
         try {
@@ -144,130 +191,223 @@ export default function CompetitionDetails() {
             </PageHeader>
 
             <MainContent>
-                <Section>
+                <ContentContainer>
                     <SectionHeader>
                         <SectionTitle>Detalhes</SectionTitle>
-                        <CompetitionStatus status={competition.status}>
-                            {competition.status === 'pending' && 'Aguardando Início'}
-                            {competition.status === 'in_progress' && 'Em Andamento'}
-                            {competition.status === 'finished' && 'Finalizado'}
+                        <CompetitionStatus status={competition?.status || 'pending'}>
+                            {competition?.status === 'pending' && 'Aguardando Início'}
+                            {competition?.status === 'in_progress' && 'Em Andamento'}
+                            {competition?.status === 'finished' && 'Finalizado'}
                         </CompetitionStatus>
                     </SectionHeader>
 
-                    <Description>{competition.description}</Description>
-
-                    {competition.status === 'pending' && (
-                        <StartButton 
-                            onPress={handleStartCompetition}
-                            disabled={!canStartCompetition}
-                            style={{ opacity: canStartCompetition ? 1 : 0.5 }}
-                        >
-                            <StartButtonText>
-                                {members.length < 4 
-                                    ? `Adicione mais ${4 - members.length} membro${4 - members.length === 1 ? '' : 's'}`
-                                    : 'Iniciar Competição'
-                                }
-                            </StartButtonText>
-                        </StartButton>
+                    {competition?.status === 'in_progress' && canFinish && (
+                        <FinishButton onPress={handleFinishCompetition} disabled={loading}>
+                            {loading ? (
+                                <ActivityIndicator color={colors.gray100} />
+                            ) : (
+                                <>
+                                    <Feather name="flag" size={24} color={colors.gray100} />
+                                    <FinishButtonText>Encerrar Competição</FinishButtonText>
+                                </>
+                            )}
+                        </FinishButton>
                     )}
-                </Section>
 
-                {competition.status === 'in_progress' && (
-                    <>
-                        <SectionHeader>
-                            <SectionTitle>Jogos</SectionTitle>
-                        </SectionHeader>
-
-                        {games.length === 0 ? (
-                            <EmptyContainer>
-                                <EmptyText>Nenhum jogo registrado</EmptyText>
-                                <EmptyDescription>
-                                    Clique no botão + para adicionar um novo jogo
-                                </EmptyDescription>
-                            </EmptyContainer>
-                        ) : (
-                            <GamesList
-                                data={games}
-                                keyExtractor={(item) => item.id}
-                                renderItem={({ item }) => (
-                                    <GameCard 
-                                        key={item.id}
-                                        onPress={() => router.push(`/comunidade/${communityId}/competicao/${competitionId}/jogo/${item.id}`)}
-                                    >
-                                        <GameTeams>
-                                            <TeamScore>
-                                                <Score>{item.team1_score}</Score>
-                                                <TeamName>
-                                                    {item.team1_players?.map((player, index) => (
-                                                        player.name + (index < item.team1_players.length - 1 ? ' e ' : '')
-                                                    ))}
-                                                </TeamName>
-                                            </TeamScore>
-                                            
-                                            <Versus>X</Versus>
-                                            
-                                            <TeamScore>
-                                                <Score>{item.team2_score}</Score>
-                                                <TeamName>
-                                                    {item.team2_players?.map((player, index) => (
-                                                        player.name + (index < item.team2_players.length - 1 ? ' e ' : '')
-                                                    ))}
-                                                </TeamName>
-                                            </TeamScore>
-                                        </GameTeams>
-
-                                        <GameStatus status={item.status}>
-                                            {item.status === 'pending' && 'Aguardando Início'}
-                                            {item.status === 'in_progress' && 'Em Andamento'}
-                                            {item.status === 'finished' && 'Finalizado'}
-                                        </GameStatus>
-                                    </GameCard>
-                                )}
-                            />
-                        )}
-
-                        <NewGameButton onPress={() => router.push(`/comunidade/${communityId}/competicao/${competitionId}/jogo/novo`)}>
-                            <Feather name="plus" size={24} color={colors.white} />
-                        </NewGameButton>
-                    </>
-                )}
-
-                <Section>
-                    <SectionHeader>
-                        <TouchableOpacity 
-                            onPress={() => setIsMembersExpanded(!isMembersExpanded)}
-                            style={{ flexDirection: 'row', alignItems: 'center' }}
-                        >
-                            <SectionTitle>Membros ({members.length})</SectionTitle>
-                            <Feather 
-                                name={isMembersExpanded ? "chevron-up" : "chevron-down"} 
-                                size={20} 
-                                color={colors.gray100} 
-                                style={{ marginLeft: 8 }}
-                            />
-                        </TouchableOpacity>
-                        <ManageButton onPress={() => setIsAddMemberModalVisible(true)}>
-                            <ManageButtonText>Gerenciar</ManageButtonText>
-                            <Feather name="users" size={20} color={colors.gray100} />
-                        </ManageButton>
-                    </SectionHeader>
-
-                    {isMembersExpanded && (
-                        <MembersScrollView>
-                            <MembersList>
-                                {members.map((member) => (
-                                    <MemberItem key={member.id}>
-                                        <MemberInfo>
-                                            <MemberName>{member.players.name}</MemberName>
-                                        </MemberInfo>
-                                    </MemberItem>
+                    {competition?.status === 'finished' && results ? (
+                        <>
+                            <Section>
+                                <SectionTitle>Classificação Individual</SectionTitle>
+                                {results.players.map((player, index) => (
+                                    <PlayerCard key={player.id}>
+                                        <Position>{index + 1}º</Position>
+                                        <PlayerInfo>
+                                            <PlayerName>{player.name}</PlayerName>
+                                            <PlayerStats>
+                                                <StatItem>
+                                                    <StatLabel>Pontos:</StatLabel>
+                                                    <StatValue>{player.score}</StatValue>
+                                                </StatItem>
+                                                <StatItem>
+                                                    <StatLabel>V/D:</StatLabel>
+                                                    <StatValue>{player.wins}/{player.losses}</StatValue>
+                                                </StatItem>
+                                                {player.buchudas > 0 && (
+                                                    <StatItem>
+                                                        <StatLabel>Buchudas:</StatLabel>
+                                                        <StatValue>{player.buchudas}</StatValue>
+                                                    </StatItem>
+                                                )}
+                                                {player.buchudasDeRe > 0 && (
+                                                    <StatItem>
+                                                        <StatLabel>Buchudas de Ré:</StatLabel>
+                                                        <StatValue>{player.buchudasDeRe}</StatValue>
+                                                    </StatItem>
+                                                )}
+                                            </PlayerStats>
+                                        </PlayerInfo>
+                                    </PlayerCard>
                                 ))}
-                            </MembersList>
-                        </MembersScrollView>
-                    )}
-                </Section>
+                            </Section>
 
+                            <Section>
+                                <SectionTitle>Classificação por Duplas</SectionTitle>
+                                {results.pairs.map((pair, index) => (
+                                    <PairCard key={pair.players.join('_')}>
+                                        <Position>{index + 1}º</Position>
+                                        <PairInfo>
+                                            <PairPlayers>
+                                                {pair.players.map(playerId => {
+                                                    const player = results.players.find(p => p.id === playerId);
+                                                    return player?.name;
+                                                }).join(' e ')}
+                                            </PairPlayers>
+                                            <PairStats>
+                                                <StatItem>
+                                                    <StatLabel>Pontos:</StatLabel>
+                                                    <StatValue>{pair.score}</StatValue>
+                                                </StatItem>
+                                                <StatItem>
+                                                    <StatLabel>V/D:</StatLabel>
+                                                    <StatValue>{pair.wins}/{pair.losses}</StatValue>
+                                                </StatItem>
+                                                {pair.buchudas > 0 && (
+                                                    <StatItem>
+                                                        <StatLabel>Buchudas:</StatLabel>
+                                                        <StatValue>{pair.buchudas}</StatValue>
+                                                    </StatItem>
+                                                )}
+                                                {pair.buchudasDeRe > 0 && (
+                                                    <StatItem>
+                                                        <StatLabel>Buchudas de Ré:</StatLabel>
+                                                        <StatValue>{pair.buchudasDeRe}</StatValue>
+                                                    </StatItem>
+                                                )}
+                                            </PairStats>
+                                        </PairInfo>
+                                    </PairCard>
+                                ))}
+                            </Section>
+                        </>
+                    ) : (
+                        <>
+                            <Description>{competition?.description}</Description>
+
+                            <Section>
+                                <SectionHeader>
+                                    <TouchableOpacity 
+                                        onPress={() => setIsMembersExpanded(!isMembersExpanded)}
+                                        style={{ flexDirection: 'row', alignItems: 'center' }}
+                                    >
+                                        <SectionTitle>Membros ({members.length})</SectionTitle>
+                                        <Feather 
+                                            name={isMembersExpanded ? "chevron-up" : "chevron-down"} 
+                                            size={20} 
+                                            color={colors.gray100} 
+                                            style={{ marginLeft: 8 }}
+                                        />
+                                    </TouchableOpacity>
+                                    <ManageButton onPress={() => setIsAddMemberModalVisible(true)}>
+                                        <ManageButtonText>Gerenciar</ManageButtonText>
+                                        <Feather name="users" size={20} color={colors.gray100} />
+                                    </ManageButton>
+                                </SectionHeader>
+
+                                {isMembersExpanded && (
+                                    <MembersScrollView>
+                                        <MembersList>
+                                            {members.map((member) => (
+                                                <MemberItem key={member.id}>
+                                                    <MemberInfo>
+                                                        <MemberName>{member.players.name}</MemberName>
+                                                    </MemberInfo>
+                                                </MemberItem>
+                                            ))}
+                                        </MembersList>
+                                    </MembersScrollView>
+                                )}
+                            </Section>
+
+                            {competition?.status === 'pending' && (
+                                <StartButton 
+                                    onPress={handleStartCompetition}
+                                    disabled={!canStartCompetition}
+                                    style={{ opacity: canStartCompetition ? 1 : 0.5 }}
+                                >
+                                    <StartButtonText>
+                                        {members.length < 4 
+                                            ? `Adicione mais ${4 - members.length} membro${4 - members.length === 1 ? '' : 's'}`
+                                            : 'Iniciar Competição'
+                                        }
+                                    </StartButtonText>
+                                </StartButton>
+                            )}
+
+                            {competition?.status === 'in_progress' && (
+                                <>
+                                    <SectionHeader>
+                                        <SectionTitle>Jogos</SectionTitle>
+                                    </SectionHeader>
+
+                                    {games.length === 0 ? (
+                                        <EmptyContainer>
+                                            <EmptyText>Nenhum jogo registrado</EmptyText>
+                                            <EmptyDescription>
+                                                Clique no botão + para adicionar um novo jogo
+                                            </EmptyDescription>
+                                        </EmptyContainer>
+                                    ) : (
+                                        <GamesList
+                                            data={games}
+                                            keyExtractor={(item) => item.id}
+                                            renderItem={({ item }) => (
+                                                <GameCard 
+                                                    key={item.id}
+                                                    onPress={() => router.push(`/comunidade/${communityId}/competicao/${competitionId}/jogo/${item.id}`)}
+                                                >
+                                                    <GameTeams>
+                                                        <TeamScore>
+                                                            <Score>{item.team1_score}</Score>
+                                                            <TeamName>
+                                                                {item.team1_players?.map((player, index) => (
+                                                                    player.name + (index < item.team1_players.length - 1 ? ' e ' : '')
+                                                                ))}
+                                                            </TeamName>
+                                                        </TeamScore>
+                                                        
+                                                        <Versus>X</Versus>
+                                                        
+                                                        <TeamScore>
+                                                            <Score>{item.team2_score}</Score>
+                                                            <TeamName>
+                                                                {item.team2_players?.map((player, index) => (
+                                                                    player.name + (index < item.team2_players.length - 1 ? ' e ' : '')
+                                                                ))}
+                                                            </TeamName>
+                                                        </TeamScore>
+                                                    </GameTeams>
+
+                                                    <GameStatus status={item.status}>
+                                                        {item.status === 'pending' && 'Aguardando Início'}
+                                                        {item.status === 'in_progress' && 'Em Andamento'}
+                                                        {item.status === 'finished' && 'Finalizado'}
+                                                    </GameStatus>
+                                                </GameCard>
+                                            )}
+                                        />
+                                    )}
+                                </>
+                            )}
+                        </>
+                    )}
+                </ContentContainer>
             </MainContent>
+
+            {competition?.status === 'in_progress' && (
+                <NewGameButton onPress={() => router.push(`/comunidade/${communityId}/competicao/${competitionId}/jogo/novo`)}>
+                    <Feather name="plus" size={24} color={colors.white} />
+                </NewGameButton>
+            )}
 
             <Modal
                 animationType="slide"
@@ -306,10 +446,6 @@ export default function CompetitionDetails() {
                     </ModalContent>
                 </ModalContainer>
             </Modal>
-
-            <NewGameButton onPress={() => router.push(`/comunidade/${communityId}/competicao/${competitionId}/jogo/novo`)}>
-                <Feather name="plus" size={24} color={colors.white} />
-            </NewGameButton>
         </Container>
     );
 }
@@ -345,9 +481,14 @@ const HeaderTitle = styled.Text`
     flex: 1;
 `;
 
-const MainContent = styled.View`
+const MainContent = styled.ScrollView`
     flex: 1;
-    padding: 20px;
+    padding: 24px;
+    background-color: ${colors.backgroundDark};
+`;
+
+const ContentContainer = styled.View`
+    flex: 1;
 `;
 
 const SectionHeader = styled.View`
@@ -402,7 +543,7 @@ const StartButtonText = styled.Text`
 `;
 
 const Section = styled.View`
-    margin-top: 24px;
+    margin-top: 8px;
 `;
 
 const MembersScrollView = styled.ScrollView`
@@ -564,4 +705,82 @@ const NewGameButton = styled.TouchableOpacity`
     justify-content: center;
     elevation: 8;
     z-index: 999;
+`;
+
+const Position = styled.Text`
+    font-size: 24px;
+    font-weight: bold;
+    color: ${colors.primary};
+    margin-right: 16px;
+`;
+
+const PlayerCard = styled.View`
+    background-color: ${colors.backgroundMedium};
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 8px;
+    flex-direction: row;
+    align-items: center;
+`;
+
+const PlayerInfo = styled.View`
+    flex: 1;
+`;
+
+const PlayerName = styled.Text`
+    color: ${colors.gray100};
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 4px;
+`;
+
+const PlayerStats = styled.View`
+    flex-direction: row;
+    flex-wrap: wrap;
+`;
+
+const StatItem = styled.View`
+    flex-direction: row;
+    align-items: center;
+    margin-right: 16px;
+    margin-top: 4px;
+`;
+
+const StatLabel = styled.Text`
+    color: ${colors.gray300};
+    font-size: 14px;
+    margin-right: 4px;
+`;
+
+const StatValue = styled.Text`
+    color: ${colors.gray100};
+    font-size: 14px;
+    font-weight: bold;
+`;
+
+const PairCard = styled(PlayerCard)``;
+
+const PairInfo = styled(PlayerInfo)``;
+
+const PairPlayers = styled(PlayerName)``;
+
+const PairStats = styled(PlayerStats)``;
+
+const FinishButton = styled.TouchableOpacity<{ disabled?: boolean }>`
+    background-color: ${colors.error};
+    padding: 16px;
+    border-radius: 8px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    margin-top: 8px;
+    margin-bottom: 8px;
+    opacity: ${props => props.disabled ? 0.7 : 1};
+`;
+
+const FinishButtonText = styled.Text`
+    color: ${colors.gray100};
+    font-size: 16px;
+    font-weight: bold;
+    margin-left: 8px;
 `;
