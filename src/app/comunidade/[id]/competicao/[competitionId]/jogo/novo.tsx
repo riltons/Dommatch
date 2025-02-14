@@ -40,9 +40,18 @@ export default function NewGame() {
         try {
             setLoading(true);
             const membersData = await competitionService.listMembers(competitionId as string);
-            setMembers(membersData.map(m => ({ id: m.player_id, name: m.players.name })));
+            console.log('Dados dos membros recebidos:', membersData);
+            
+            // Mapeia os membros usando os dados do join
+            const mappedMembers = membersData.map(m => ({
+                id: m.player_id,
+                name: m.players.name
+            }));
+            
+            console.log('Membros mapeados para times:', mappedMembers);
+            setMembers(mappedMembers);
         } catch (error) {
-            console.error(error);
+            console.error('Erro ao carregar membros:', error);
             Alert.alert('Erro', 'Não foi possível carregar os membros');
         } finally {
             setLoading(false);

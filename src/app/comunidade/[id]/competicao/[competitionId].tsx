@@ -296,7 +296,7 @@ export default function CompetitionDetails() {
                                 <MembersList data={members} renderItem={({ item }) => (
                                     <MemberItem key={item.id}>
                                         <MemberInfo>
-                                            <MemberName>{item.players?.name}</MemberName>
+                                            <MemberName>{item.players?.name || 'Nome não disponível'}</MemberName>
                                         </MemberInfo>
                                     </MemberItem>
                                 )} keyExtractor={(item) => item.id} />
@@ -409,10 +409,10 @@ export default function CompetitionDetails() {
                                     <MemberName>{item.players.name}</MemberName>
                                 </MemberInfo>
                                 <SelectButton
-                                    onPress={() => handleToggleMember(item.id)}
-                                    selected={members.some(m => m.player_id === item.id)}
+                                    onPress={() => handleToggleMember(item.player_id)}
+                                    selected={members.some(m => m.player_id === item.player_id)}
                                 >
-                                    {members.some(m => m.player_id === item.id) ? (
+                                    {members.some(m => m.player_id === item.player_id) ? (
                                         <Feather name="check-circle" size={24} color={colors.primary} />
                                     ) : (
                                         <Feather name="circle" size={24} color={colors.gray300} />
@@ -674,79 +674,6 @@ const GameStatus = styled.Text<{ status: 'pending' | 'in_progress' | 'finished' 
     margin-top: 8px;
 `;
 
-const NewGameButton = styled.TouchableOpacity`
-    position: absolute;
-    bottom: 32px;
-    right: 32px;
-    width: 56px;
-    height: 56px;
-    border-radius: 28px;
-    background-color: ${colors.primary};
-    align-items: center;
-    justify-content: center;
-    elevation: 8;
-    z-index: 999;
-`;
-
-const Position = styled.Text`
-    font-size: 24px;
-    font-weight: bold;
-    color: ${colors.primary};
-    margin-right: 16px;
-`;
-
-const PlayerCard = styled.View`
-    background-color: ${colors.backgroundMedium};
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 8px;
-    flex-direction: row;
-    align-items: center;
-`;
-
-const PlayerInfo = styled.View`
-    flex: 1;
-`;
-
-const PlayerName = styled.Text`
-    color: ${colors.gray100};
-    font-size: 16px;
-    font-weight: bold;
-    margin-bottom: 4px;
-`;
-
-const PlayerStats = styled.View`
-    flex-direction: row;
-    flex-wrap: wrap;
-`;
-
-const StatItem = styled.View`
-    flex-direction: row;
-    align-items: center;
-    margin-right: 16px;
-    margin-top: 4px;
-`;
-
-const StatLabel = styled.Text`
-    color: ${colors.gray300};
-    font-size: 14px;
-    margin-right: 4px;
-`;
-
-const StatValue = styled.Text`
-    color: ${colors.gray100};
-    font-size: 14px;
-    font-weight: bold;
-`;
-
-const PairCard = styled(PlayerCard)``;
-
-const PairInfo = styled(PlayerInfo)``;
-
-const PairPlayers = styled(PlayerName)``;
-
-const PairStats = styled(PlayerStats)``;
-
 const FinishButton = styled.TouchableOpacity<{ disabled?: boolean }>`
     background-color: ${colors.error};
     padding: 16px;
@@ -790,4 +717,33 @@ const SelectButton = styled.TouchableOpacity`
 
 const CloseButton = styled.TouchableOpacity`
     padding: 8px;
+`;
+
+const Button = styled.TouchableOpacity`
+    background-color: ${colors.primary};
+    padding: 16px;
+    border-radius: 8px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 16px;
+`;
+
+const ButtonText = styled.Text`
+    color: ${colors.white};
+    font-size: 16px;
+    font-weight: bold;
+`;
+
+const NewGameButton = styled.TouchableOpacity`
+    position: absolute;
+    bottom: 32px;
+    right: 32px;
+    width: 56px;
+    height: 56px;
+    border-radius: 28px;
+    background-color: ${colors.primary};
+    align-items: center;
+    justify-content: center;
+    elevation: 8;
+    z-index: 999;
 `;

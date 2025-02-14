@@ -117,32 +117,46 @@ export const competitionService = {
 
     async listMembers(competitionId: string) {
         try {
-            // Primeiro busca os membros da competição
+            // Busca os membros
             const { data: members, error: membersError } = await supabase
                 .from('competition_members')
-                .select('*')
+                .select(`
+                    competition_id,
+                    player_id,
+                    id
+                `)
                 .eq('competition_id', competitionId);
 
-            if (membersError) throw membersError;
+            if (membersError) {
+                console.error('Erro ao buscar membros:', membersError);
+                throw membersError;
+            }
 
             if (!members || members.length === 0) {
                 return [];
             }
 
-            // Depois busca os detalhes dos jogadores
-            const playerIds = members.map(member => member.player_id);
+            // Busca os jogadores
             const { data: players, error: playersError } = await supabase
                 .from('players')
-                .select('*')
-                .in('id', playerIds);
+                .select('id, name, phone')
+                .in('id', members.map(m => m.player_id));
 
-            if (playersError) throw playersError;
+            if (playersError) {
+                console.error('Erro ao buscar jogadores:', playersError);
+                throw playersError;
+            }
 
-            // Combina os dados mantendo a estrutura esperada pelo componente
-            return members.map(member => ({
-                ...member,
-                players: players?.find(player => player.id === member.player_id)
-            }));
+            // Retorna apenas os membros que têm jogadores correspondentes
+            const result = members
+                .filter(member => players?.some(p => p.id === member.player_id))
+                .map(member => ({
+                    ...member,
+                    players: players?.find(p => p.id === member.player_id)!
+                }));
+
+            console.log('Membros encontrados:', result);
+            return result;
         } catch (error) {
             console.error('Erro ao listar membros da competição:', error);
             throw error;
