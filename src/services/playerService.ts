@@ -3,44 +3,44 @@ import { supabase } from '@/lib/supabase';
 export interface Player {
     id: string;
     name: string;
-    email: string;
+    phone: string;
     created_at: string;
 }
 
 interface CreatePlayerDTO {
     name: string;
-    email: string;
+    phone: string;
 }
 
 class PlayerService {
     private players: Player[] = [];
 
-    async getByEmail(email: string) {
+    async getByPhone(phone: string) {
         try {
             const { data, error } = await supabase
                 .from('players')
                 .select('*')
-                .eq('email', email)
+                .eq('phone', phone)
                 .single();
 
             if (error && error.code !== 'PGRST116') { // PGRST116 é o código para "não encontrado"
-                console.error('Erro ao buscar jogador por email:', error);
-                throw new Error('Erro ao buscar jogador por email');
+                console.error('Erro ao buscar jogador por telefone:', error);
+                throw new Error('Erro ao buscar jogador por telefone');
             }
 
             return data;
         } catch (error) {
-            console.error('Erro ao buscar jogador por email:', error);
+            console.error('Erro ao buscar jogador por telefone:', error);
             throw error;
         }
     }
 
     async create(data: CreatePlayerDTO) {
         try {
-            // Verifica se já existe jogador com este email
-            const existingPlayer = await this.getByEmail(data.email);
+            // Verifica se já existe jogador com este telefone
+            const existingPlayer = await this.getByPhone(data.phone);
             if (existingPlayer) {
-                throw new Error('Já existe um jogador cadastrado com este email');
+                throw new Error('Já existe um jogador cadastrado com este telefone');
             }
 
             const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -57,7 +57,7 @@ class PlayerService {
 
             if (error) {
                 if (error.code === '23505') { // Código do PostgreSQL para violação de UNIQUE
-                    throw new Error('Já existe um jogador cadastrado com este email');
+                    throw new Error('Já existe um jogador cadastrado com este telefone');
                 }
                 console.error('Erro ao criar jogador:', error);
                 throw new Error('Erro ao criar jogador');

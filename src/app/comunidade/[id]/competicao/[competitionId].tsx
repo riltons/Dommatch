@@ -74,10 +74,12 @@ export default function CompetitionDetails() {
             const competition = await competitionService.getById(competitionId as string);
             const members = await competitionService.listMembers(competitionId as string);
             const games = await gameService.listByCompetition(competitionId as string);
+            const communityMembers = await communityMembersService.listMembers(communityId as string);
 
             setCompetition(competition);
             setMembers(members);
             setGames(games);
+            setCommunityMembers(communityMembers);
 
             if (competition.status === 'finished') {
                 const results = await competitionService.getCompetitionResults(competitionId as string);
@@ -89,7 +91,7 @@ export default function CompetitionDetails() {
         } finally {
             setIsLoading(false);
         }
-    }, [competitionId]);
+    }, [competitionId, communityId]);
 
     const loadGames = useCallback(async () => {
         try {
@@ -144,19 +146,22 @@ export default function CompetitionDetails() {
         }
     };
 
-    const handleToggleMember = async (playerId: string, isCurrentMember: boolean) => {
+    const handleToggleMember = async (playerId: string) => {
         try {
-            setIsLoading(true);
-            if (isCurrentMember) {
+            const isMember = members.some(m => m.player_id === playerId);
+            
+            if (isMember) {
                 await competitionService.removeMember(competitionId as string, playerId);
             } else {
                 await competitionService.addMember(competitionId as string, playerId);
             }
-            await loadCompetitionAndMembers();
+            
+            // Recarrega a lista de membros após a alteração
+            const updatedMembers = await competitionService.listMembers(competitionId as string);
+            setMembers(updatedMembers);
         } catch (error) {
-            console.error(error);
-        } finally {
-            setIsLoading(false);
+            console.error('Erro ao gerenciar membro:', error);
+            Alert.alert('Erro', 'Não foi possível gerenciar o membro');
         }
     };
 
@@ -404,27 +409,30 @@ export default function CompetitionDetails() {
                 <ModalContainer>
                     <ModalContent>
                         <ModalHeader>
-                            <ModalTitle>Adicionar Membros</ModalTitle>
-                            <TouchableOpacity onPress={() => setIsAddMemberModalVisible(false)}>
+                            <ModalTitle>Gerenciar Membros</ModalTitle>
+                            <CloseButton onPress={() => setIsAddMemberModalVisible(false)}>
                                 <Feather name="x" size={24} color={colors.gray100} />
-                            </TouchableOpacity>
+                            </CloseButton>
                         </ModalHeader>
 
                         <MembersList>
-                            {communityMembers.map((member) => {
-                                const isCurrentMember = members.some(m => m.player_id === member.player_id);
+                            {communityMembers.map(member => {
+                                const isMember = members.some(m => m.player_id === member.id);
                                 return (
                                     <MemberItem key={member.id}>
                                         <MemberInfo>
                                             <MemberName>{member.players.name}</MemberName>
                                         </MemberInfo>
-                                        <TouchableOpacity onPress={() => handleToggleMember(member.player_id, isCurrentMember)}>
-                                            <Feather
-                                                name={isCurrentMember ? "minus-circle" : "plus-circle"}
-                                                size={24}
-                                                color={isCurrentMember ? colors.error : colors.success}
-                                            />
-                                        </TouchableOpacity>
+                                        <SelectButton
+                                            onPress={() => handleToggleMember(member.id)}
+                                            selected={isMember}
+                                        >
+                                            {isMember ? (
+                                                <Feather name="check-circle" size={24} color={colors.primary} />
+                                            ) : (
+                                                <Feather name="circle" size={24} color={colors.gray300} />
+                                            )}
+                                        </SelectButton>
                                     </MemberItem>
                                 );
                             })}
@@ -786,4 +794,12 @@ const ViewScoresButtonText = styled.Text`
     font-size: 16px;
     font-weight: bold;
     margin-left: 8px;
+`;
+
+const SelectButton = styled.TouchableOpacity`
+    padding: 8px;
+`;
+
+const CloseButton = styled.TouchableOpacity`
+    padding: 8px;
 `;

@@ -11,7 +11,6 @@ export default function NovoJogador() {
     const router = useRouter();
     const [formData, setFormData] = useState({
         name: '',
-        nickname: '',
         phone: ''
     });
     const [loading, setLoading] = useState(false);
@@ -31,7 +30,6 @@ export default function NovoJogador() {
             setLoading(true);
             await playerService.create({
                 name: formData.name.trim(),
-                nickname: formData.nickname.trim(),
                 phone: formData.phone.trim()
             });
             router.back();
@@ -81,39 +79,13 @@ export default function NovoJogador() {
                 </FormGroup>
 
                 <FormGroup>
-                    <Label>Apelido</Label>
-                    <TextInput
-                        mode="outlined"
-                        value={formData.nickname}
-                        onChangeText={(text) => setFormData(prev => ({ ...prev, nickname: text }))}
-                        placeholder="Apelido do jogador"
-                        style={{
-                            backgroundColor: colors.backgroundDark,
-                        }}
-                        theme={{
-                            colors: {
-                                primary: colors.primary,
-                                text: colors.gray100,
-                                placeholder: colors.gray300,
-                                background: colors.backgroundDark,
-                                surface: colors.backgroundDark,
-                                onSurface: colors.gray100,
-                                outline: colors.gray700,
-                            }
-                        }}
-                    />
-                </FormGroup>
-
-                <FormGroup>
                     <Label>Celular</Label>
                     <TextInput
-                        label="Celular"
-                        value={formData.phone}
-                        onChangeText={(text) => setFormData({ ...formData, phone: text })}
                         mode="outlined"
-                        keyboardType="numeric"
-                        maxLength={11}
-                        placeholder="Digite o celular do jogador"
+                        value={formData.phone}
+                        onChangeText={(text) => setFormData(prev => ({ ...prev, phone: text }))}
+                        placeholder="(00) 00000-0000"
+                        keyboardType="phone-pad"
                         style={{
                             backgroundColor: colors.backgroundDark,
                         }}
