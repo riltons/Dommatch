@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Dominô",
+    "name": "Dominó",
     "slug": "domino",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -33,13 +33,19 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./src/assets/icon.png"
     },
     "plugins": [
       "expo-router"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "owner": "riltons",
+    "extra": {
+      "eas": {
+        "projectId": "21d5f3f4-d797-445d-a3d2-839027c57a02"
+      }
     }
   }
 }
