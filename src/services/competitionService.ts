@@ -431,5 +431,5 @@ export const competitionService = {
             console.error('Erro ao buscar resultados:', error);
             throw error;
         }
-    },
+    }
 };

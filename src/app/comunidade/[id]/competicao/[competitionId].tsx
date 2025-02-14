@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Alert, Modal, TouchableOpacity, ActivityIndicator, Text, ScrollView } from 'react-native';
+import { Alert, Modal, TouchableOpacity, ActivityIndicator, Text, View, FlatList } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import styled from 'styled-components/native';
 import { colors } from '@/styles/colors';
@@ -72,8 +72,8 @@ export default function CompetitionDetails() {
         try {
             setIsLoading(true);
             const competition = await competitionService.getById(competitionId as string);
-            const members = await competitionService.getMembers(competitionId as string);
-            const games = await competitionService.getGames(competitionId as string);
+            const members = await competitionService.listMembers(competitionId as string);
+            const games = await gameService.listByCompetition(competitionId as string);
 
             setCompetition(competition);
             setMembers(members);
@@ -217,62 +217,64 @@ export default function CompetitionDetails() {
                     )}
 
                     {competition?.status === 'finished' ? (
-                        <>
-                            <ViewScoresButton 
-                                onPress={() => router.push(`/comunidade/${communityId}/competicao/${competitionId}/scores`)}
-                            >
-                                <Feather name="award" size={24} color={colors.gray100} />
-                                <ViewScoresButtonText>Ver Classificação</ViewScoresButtonText>
-                            </ViewScoresButton>
+                        <GamesList
+                            ListHeaderComponent={() => (
+                                <ContentContainer>
+                                    <ViewScoresButton 
+                                        onPress={() => router.push(`/comunidade/${communityId}/competicao/${competitionId}/scores`)}
+                                    >
+                                        <Feather name="award" size={24} color={colors.gray100} />
+                                        <ViewScoresButtonText>Ver Classificação</ViewScoresButtonText>
+                                    </ViewScoresButton>
 
-                            <Section>
-                                <SectionTitle>Jogos</SectionTitle>
-                                {games.length === 0 ? (
-                                    <EmptyContainer>
-                                        <EmptyText>Nenhum jogo registrado</EmptyText>
-                                    </EmptyContainer>
-                                ) : (
-                                    <GamesList
-                                        data={games}
-                                        keyExtractor={(item) => item.id}
-                                        renderItem={({ item }) => (
-                                            <GameCard 
-                                                key={item.id}
-                                                onPress={() => router.push(`/comunidade/${communityId}/competicao/${competitionId}/jogo/${item.id}`)}
-                                            >
-                                                <GameTeams>
-                                                    <TeamScore>
-                                                        <Score>{item.team1_score}</Score>
-                                                        <TeamName>
-                                                            {item.team1_players?.map((player, index) => (
-                                                                player.name + (index < item.team1_players.length - 1 ? ' e ' : '')
-                                                            ))}
-                                                        </TeamName>
-                                                    </TeamScore>
-                                                    
-                                                    <Versus>X</Versus>
-                                                    
-                                                    <TeamScore>
-                                                        <Score>{item.team2_score}</Score>
-                                                        <TeamName>
-                                                            {item.team2_players?.map((player, index) => (
-                                                                player.name + (index < item.team2_players.length - 1 ? ' e ' : '')
-                                                            ))}
-                                                        </TeamName>
-                                                    </TeamScore>
-                                                </GameTeams>
+                                    <Section>
+                                        <SectionTitle>Jogos</SectionTitle>
+                                    </Section>
+                                </ContentContainer>
+                            )}
+                            data={games}
+                            keyExtractor={(item) => item.id}
+                            renderItem={({ item }) => (
+                                <GameCard 
+                                    key={item.id}
+                                    onPress={() => router.push(`/comunidade/${communityId}/competicao/${competitionId}/jogo/${item.id}`)}
+                                >
+                                    <GameTeams>
+                                        <TeamScore>
+                                            <Score>{item.team1_score}</Score>
+                                            <TeamName>
+                                                {item.team1_players?.map((player, index) => (
+                                                    player.name + (index < item.team1_players.length - 1 ? ' e ' : '')
+                                                ))}
+                                            </TeamName>
+                                        </TeamScore>
+                                        
+                                        <Versus>X</Versus>
+                                        
+                                        <TeamScore>
+                                            <Score>{item.team2_score}</Score>
+                                            <TeamName>
+                                                {item.team2_players?.map((player, index) => (
+                                                    player.name + (index < item.team2_players.length - 1 ? ' e ' : '')
+                                                ))}
+                                            </TeamName>
+                                        </TeamScore>
+                                    </GameTeams>
 
-                                                <GameStatus status={item.status}>
-                                                    {item.status === 'pending' && 'Aguardando Início'}
-                                                    {item.status === 'in_progress' && 'Em Andamento'}
-                                                    {item.status === 'finished' && 'Finalizado'}
-                                                </GameStatus>
-                                            </GameCard>
-                                        )}
-                                    />
-                                )}
-                            </Section>
-                        </>
+                                    <GameStatus status={item.status}>
+                                        {item.status === 'pending' && 'Aguardando Início'}
+                                        {item.status === 'in_progress' && 'Em Andamento'}
+                                        {item.status === 'finished' && 'Finalizado'}
+                                    </GameStatus>
+                                </GameCard>
+                            )}
+                            ListEmptyComponent={() => (
+                                <EmptyContainer>
+                                    <EmptyText>Nenhum jogo registrado</EmptyText>
+                                </EmptyContainer>
+                            )}
+                            contentContainerStyle={{ padding: 16 }}
+                        />
                     ) : (
                         <>
                             <Description>{competition?.description}</Description>
@@ -462,17 +464,16 @@ const HeaderTitle = styled.Text`
     font-size: 24px;
     font-weight: bold;
     color: ${colors.gray100};
-    flex: 1;
 `;
 
-const MainContent = styled.ScrollView`
+const MainContent = styled.View`
     flex: 1;
-    padding: 24px;
     background-color: ${colors.backgroundDark};
 `;
 
 const ContentContainer = styled.View`
     flex: 1;
+    padding: 24px;
 `;
 
 const SectionHeader = styled.View`
