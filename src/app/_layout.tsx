@@ -40,12 +40,20 @@ export default function RootLayout() {
                         </>
                     ) : (
                         // Rotas protegidas
-                        <Stack.Screen 
-                            name="(pages)" 
-                            options={{ 
-                                headerShown: false,
-                            }} 
-                        />
+                        <>
+                            <Stack.Screen 
+                                name="(tabs)" 
+                                options={{ 
+                                    headerShown: false,
+                                }} 
+                            />
+                            <Stack.Screen 
+                                name="comunidade/[id]/competicao/[competitionId]" 
+                                options={{ 
+                                    headerShown: false,
+                                }} 
+                            />
+                        </>
                     )}
                 </Stack>
             </SafeContainer>
