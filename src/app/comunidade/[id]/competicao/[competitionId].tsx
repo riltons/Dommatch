@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Alert, Modal, TouchableOpacity, ActivityIndicator, Text, View, FlatList } from 'react-native';
+import { Alert, Modal, TouchableOpacity, ActivityIndicator, Text, View, FlatList, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import styled from 'styled-components/native';
 import { colors } from '@/styles/colors';
@@ -61,7 +61,6 @@ export default function CompetitionDetails() {
     const [games, setGames] = useState<Game[]>([]);
     const [members, setMembers] = useState<Member[]>([]);
     const [communityMembers, setCommunityMembers] = useState<Member[]>([]);
-    const [isMembersExpanded, setIsMembersExpanded] = useState(false);
     const [isAddMemberModalVisible, setIsAddMemberModalVisible] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [canFinish, setCanFinish] = useState(false);
@@ -286,37 +285,21 @@ export default function CompetitionDetails() {
 
                             <Section>
                                 <SectionHeader>
-                                    <TouchableOpacity 
-                                        onPress={() => setIsMembersExpanded(!isMembersExpanded)}
-                                        style={{ flexDirection: 'row', alignItems: 'center' }}
-                                    >
-                                        <SectionTitle>Membros ({members.length})</SectionTitle>
-                                        <Feather 
-                                            name={isMembersExpanded ? "chevron-up" : "chevron-down"} 
-                                            size={20} 
-                                            color={colors.gray100} 
-                                            style={{ marginLeft: 8 }}
-                                        />
-                                    </TouchableOpacity>
+                                    <SectionTitle>Membros ({members.length})</SectionTitle>
+                                    
                                     <ManageButton onPress={() => setIsAddMemberModalVisible(true)}>
+                                        <Feather name="users" size={20} color={colors.primary} />
                                         <ManageButtonText>Gerenciar</ManageButtonText>
-                                        <Feather name="users" size={20} color={colors.gray100} />
                                     </ManageButton>
                                 </SectionHeader>
 
-                                {isMembersExpanded && (
-                                    <MembersScrollView>
-                                        <MembersList>
-                                            {members.map((member) => (
-                                                <MemberItem key={member.id}>
-                                                    <MemberInfo>
-                                                        <MemberName>{member.players.name}</MemberName>
-                                                    </MemberInfo>
-                                                </MemberItem>
-                                            ))}
-                                        </MembersList>
-                                    </MembersScrollView>
-                                )}
+                                <MembersList data={members} renderItem={({ item }) => (
+                                    <MemberItem key={item.id}>
+                                        <MemberInfo>
+                                            <MemberName>{item.players?.name}</MemberName>
+                                        </MemberInfo>
+                                    </MemberItem>
+                                )} keyExtractor={(item) => item.id} />
                             </Section>
 
                             {competition?.status === 'pending' && (
@@ -407,7 +390,12 @@ export default function CompetitionDetails() {
                 onRequestClose={() => setIsAddMemberModalVisible(false)}
             >
                 <ModalContainer>
-                    <ModalContent>
+                    <ModalContent
+                        contentContainerStyle={{
+                            flexGrow: 1,
+                            padding: 16
+                        }}
+                    >
                         <ModalHeader>
                             <ModalTitle>Gerenciar Membros</ModalTitle>
                             <CloseButton onPress={() => setIsAddMemberModalVisible(false)}>
@@ -415,28 +403,23 @@ export default function CompetitionDetails() {
                             </CloseButton>
                         </ModalHeader>
 
-                        <MembersList>
-                            {communityMembers.map(member => {
-                                const isMember = members.some(m => m.player_id === member.id);
-                                return (
-                                    <MemberItem key={member.id}>
-                                        <MemberInfo>
-                                            <MemberName>{member.players.name}</MemberName>
-                                        </MemberInfo>
-                                        <SelectButton
-                                            onPress={() => handleToggleMember(member.id)}
-                                            selected={isMember}
-                                        >
-                                            {isMember ? (
-                                                <Feather name="check-circle" size={24} color={colors.primary} />
-                                            ) : (
-                                                <Feather name="circle" size={24} color={colors.gray300} />
-                                            )}
-                                        </SelectButton>
-                                    </MemberItem>
-                                );
-                            })}
-                        </MembersList>
+                        <MembersList data={communityMembers} renderItem={({ item }) => (
+                            <MemberItem key={item.id}>
+                                <MemberInfo>
+                                    <MemberName>{item.players.name}</MemberName>
+                                </MemberInfo>
+                                <SelectButton
+                                    onPress={() => handleToggleMember(item.id)}
+                                    selected={members.some(m => m.player_id === item.id)}
+                                >
+                                    {members.some(m => m.player_id === item.id) ? (
+                                        <Feather name="check-circle" size={24} color={colors.primary} />
+                                    ) : (
+                                        <Feather name="circle" size={24} color={colors.gray300} />
+                                    )}
+                                </SelectButton>
+                            </MemberItem>
+                        )} keyExtractor={(item) => item.id} />
                     </ModalContent>
                 </ModalContainer>
             </Modal>
@@ -544,8 +527,13 @@ const MembersScrollView = styled.ScrollView`
     margin-top: 16px;
 `;
 
-const MembersList = styled.View`
-    padding-bottom: 8px;
+const MembersList = styled.FlatList.attrs(() => ({
+    contentContainerStyle: {
+        paddingBottom: 16
+    }
+}))`
+    flex: 1;
+    margin-top: 16px;
 `;
 
 const MemberItem = styled.View`
@@ -574,11 +562,11 @@ const ModalContainer = styled.View`
 `;
 
 const ModalContent = styled.View`
+    width: 90%;
+    height: 80%;
     background-color: ${colors.backgroundDark};
-    border-top-left-radius: 20px;
-    border-top-right-radius: 20px;
-    padding: 20px;
-    max-height: 80%;
+    border-radius: 8px;
+    padding: 16px;
 `;
 
 const ModalHeader = styled.View`
