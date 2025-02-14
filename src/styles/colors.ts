@@ -23,7 +23,7 @@ export const colors = {
     gray900: '#121214',
     
     // Cores de status
-    success: '#04D361',
+    success: '#22C55E',
     warning: '#FBA94C',
     error: '#FF3333',
     info: '#81D8F7',

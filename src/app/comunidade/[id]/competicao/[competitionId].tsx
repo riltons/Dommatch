@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Alert, Modal, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Alert, Modal, TouchableOpacity, ActivityIndicator, Text, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import styled from 'styled-components/native';
 import { colors } from '@/styles/colors';
@@ -7,6 +7,7 @@ import { Feather } from '@expo/vector-icons';
 import { competitionService } from '@/services/competitionService';
 import { communityMembersService } from '@/services/communityMembersService';
 import { gameService, Game } from '@/services/gameService';
+import { playerService } from '@/services/playerService';
 
 interface Competition {
     id: string;
@@ -24,45 +25,79 @@ interface CompetitionMember {
     };
 }
 
+interface Member {
+    id: string;
+    player_id: string;
+    players: {
+        id: string;
+        name: string;
+    };
+}
+
 export default function CompetitionDetails() {
     const router = useRouter();
     const { id: communityId, competitionId } = useLocalSearchParams();
-    const [competition, setCompetition] = useState<any>(null);
-    const [games, setGames] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [members, setMembers] = useState<any[]>([]);
+    const [competition, setCompetition] = useState<Competition | null>(null);
+    const [games, setGames] = useState<Game[]>([]);
+    const [members, setMembers] = useState<Member[]>([]);
+    const [communityMembers, setCommunityMembers] = useState<Member[]>([]);
     const [isMembersExpanded, setIsMembersExpanded] = useState(false);
-    const [communityMembers, setCommunityMembers] = useState<any[]>([]);
-    const [modalVisible, setModalVisible] = useState(false);
+    const [isAddMemberModalVisible, setIsAddMemberModalVisible] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        loadCompetitionAndMembers();
-    }, []);
-
-    const loadCompetitionAndMembers = async () => {
+    const loadCompetitionAndMembers = useCallback(async () => {
         try {
-            setLoading(true);
-            const [competitionData, membersData, communityMembersData, gamesData] = await Promise.all([
+            setIsLoading(true);
+            const [competitionData, membersData, communityMembersData] = await Promise.all([
                 competitionService.getById(competitionId as string),
                 competitionService.listMembers(competitionId as string),
-                communityMembersService.listMembers(communityId as string),
-                gameService.listByCompetition(competitionId as string)
+                communityMembersService.listMembers(communityId as string)
             ]);
 
             setCompetition(competitionData);
             setMembers(membersData);
             setCommunityMembers(communityMembersData);
-            setGames(gamesData);
+            await loadGames();
         } catch (error) {
             console.error(error);
+            Alert.alert('Erro', 'Não foi possível carregar os dados da competição');
         } finally {
-            setLoading(false);
+            setIsLoading(false);
         }
-    };
+    }, [competitionId, communityId]);
+
+    const loadGames = useCallback(async () => {
+        try {
+            const gamesData = await gameService.listByCompetition(competitionId as string);
+            const gamesWithPlayers = await Promise.all(gamesData.map(async (game) => {
+                const team1Players = await Promise.all(game.team1.map(async (playerId) => {
+                    const player = await playerService.getById(playerId);
+                    return player;
+                }));
+                const team2Players = await Promise.all(game.team2.map(async (playerId) => {
+                    const player = await playerService.getById(playerId);
+                    return player;
+                }));
+                return {
+                    ...game,
+                    team1_players: team1Players,
+                    team2_players: team2Players
+                };
+            }));
+            setGames(gamesWithPlayers);
+        } catch (error) {
+            console.error('Erro ao carregar jogos:', error);
+            Alert.alert('Erro', 'Não foi possível carregar os jogos');
+        }
+    }, [competitionId]);
+
+    useEffect(() => {
+        loadCompetitionAndMembers();
+    }, []);
 
     const handleToggleMember = async (playerId: string, isCurrentMember: boolean) => {
         try {
-            setLoading(true);
+            setIsLoading(true);
             if (isCurrentMember) {
                 await competitionService.removeMember(competitionId as string, playerId);
             } else {
@@ -72,24 +107,24 @@ export default function CompetitionDetails() {
         } catch (error) {
             console.error(error);
         } finally {
-            setLoading(false);
+            setIsLoading(false);
         }
     };
 
     const handleStartCompetition = async () => {
         try {
-            setLoading(true);
+            setIsLoading(true);
             await competitionService.startCompetition(competitionId as string);
             await loadCompetitionAndMembers();
         } catch (error) {
             console.error(error);
             Alert.alert('Erro', 'Não foi possível iniciar a competição');
         } finally {
-            setLoading(false);
+            setIsLoading(false);
         }
     };
 
-    if (loading || !competition) {
+    if (isLoading || !competition) {
         return (
             <LoadingContainer>
                 <ActivityIndicator size="large" color={colors.primary} />
@@ -109,35 +144,33 @@ export default function CompetitionDetails() {
             </PageHeader>
 
             <MainContent>
-                <SectionHeader>
-                    <SectionTitle>Detalhes</SectionTitle>
-                </SectionHeader>
+                <Section>
+                    <SectionHeader>
+                        <SectionTitle>Detalhes</SectionTitle>
+                        <CompetitionStatus status={competition.status}>
+                            {competition.status === 'pending' && 'Aguardando Início'}
+                            {competition.status === 'in_progress' && 'Em Andamento'}
+                            {competition.status === 'finished' && 'Finalizado'}
+                        </CompetitionStatus>
+                    </SectionHeader>
 
-                <Description>{competition.description}</Description>
+                    <Description>{competition.description}</Description>
 
-                <StatusContainer>
-                    <StatusLabel>Status:</StatusLabel>
-                    <StatusText>
-                        {competition.status === 'pending' && 'Aguardando Início'}
-                        {competition.status === 'in_progress' && 'Em Andamento'}
-                        {competition.status === 'finished' && 'Finalizada'}
-                    </StatusText>
-                </StatusContainer>
-
-                {competition.status === 'pending' && (
-                    <StartButton 
-                        onPress={handleStartCompetition}
-                        disabled={!canStartCompetition}
-                        style={{ opacity: canStartCompetition ? 1 : 0.5 }}
-                    >
-                        <StartButtonText>
-                            {members.length < 4 
-                                ? `Adicione mais ${4 - members.length} membro${4 - members.length === 1 ? '' : 's'}`
-                                : 'Iniciar Competição'
-                            }
-                        </StartButtonText>
-                    </StartButton>
-                )}
+                    {competition.status === 'pending' && (
+                        <StartButton 
+                            onPress={handleStartCompetition}
+                            disabled={!canStartCompetition}
+                            style={{ opacity: canStartCompetition ? 1 : 0.5 }}
+                        >
+                            <StartButtonText>
+                                {members.length < 4 
+                                    ? `Adicione mais ${4 - members.length} membro${4 - members.length === 1 ? '' : 's'}`
+                                    : 'Iniciar Competição'
+                                }
+                            </StartButtonText>
+                        </StartButton>
+                    )}
+                </Section>
 
                 {competition.status === 'in_progress' && (
                     <>
@@ -157,19 +190,33 @@ export default function CompetitionDetails() {
                                 data={games}
                                 keyExtractor={(item) => item.id}
                                 renderItem={({ item }) => (
-                                    <GameCard onPress={() => router.push(`/comunidade/${communityId}/competicao/${competitionId}/jogo/${item.id}`)}>
-                                        <GameInfo>
-                                            <GameTeam>
-                                                <GameTeamText>Time 1</GameTeamText>
-                                                <GameScore>{item.team1_score}</GameScore>
-                                            </GameTeam>
-                                            <GameVs>x</GameVs>
-                                            <GameTeam>
-                                                <GameTeamText>Time 2</GameTeamText>
-                                                <GameScore>{item.team2_score}</GameScore>
-                                            </GameTeam>
-                                        </GameInfo>
-                                        <GameStatus>
+                                    <GameCard 
+                                        key={item.id}
+                                        onPress={() => router.push(`/comunidade/${communityId}/competicao/${competitionId}/jogo/${item.id}`)}
+                                    >
+                                        <GameTeams>
+                                            <TeamScore>
+                                                <Score>{item.team1_score}</Score>
+                                                <TeamName>
+                                                    {item.team1_players?.map((player, index) => (
+                                                        player.name + (index < item.team1_players.length - 1 ? ' e ' : '')
+                                                    ))}
+                                                </TeamName>
+                                            </TeamScore>
+                                            
+                                            <Versus>X</Versus>
+                                            
+                                            <TeamScore>
+                                                <Score>{item.team2_score}</Score>
+                                                <TeamName>
+                                                    {item.team2_players?.map((player, index) => (
+                                                        player.name + (index < item.team2_players.length - 1 ? ' e ' : '')
+                                                    ))}
+                                                </TeamName>
+                                            </TeamScore>
+                                        </GameTeams>
+
+                                        <GameStatus status={item.status}>
                                             {item.status === 'pending' && 'Aguardando Início'}
                                             {item.status === 'in_progress' && 'Em Andamento'}
                                             {item.status === 'finished' && 'Finalizado'}
@@ -185,87 +232,77 @@ export default function CompetitionDetails() {
                     </>
                 )}
 
-                <SectionHeader>
-                    <SectionTitle>Membros ({members.length})</SectionTitle>
-                    <ButtonsContainer>
-                        <ToggleButton onPress={() => setIsMembersExpanded(!isMembersExpanded)}>
+                <Section>
+                    <SectionHeader>
+                        <TouchableOpacity 
+                            onPress={() => setIsMembersExpanded(!isMembersExpanded)}
+                            style={{ flexDirection: 'row', alignItems: 'center' }}
+                        >
+                            <SectionTitle>Membros ({members.length})</SectionTitle>
                             <Feather 
                                 name={isMembersExpanded ? "chevron-up" : "chevron-down"} 
                                 size={20} 
                                 color={colors.gray100} 
+                                style={{ marginLeft: 8 }}
                             />
-                        </ToggleButton>
-                        <ManageButton onPress={() => setModalVisible(true)}>
+                        </TouchableOpacity>
+                        <ManageButton onPress={() => setIsAddMemberModalVisible(true)}>
                             <ManageButtonText>Gerenciar</ManageButtonText>
                             <Feather name="users" size={20} color={colors.gray100} />
                         </ManageButton>
-                    </ButtonsContainer>
-                </SectionHeader>
+                    </SectionHeader>
 
-                {isMembersExpanded && (
-                    <MembersList
-                        data={members}
-                        keyExtractor={(item) => item.id}
-                        renderItem={({ item }) => (
-                            <MemberCard>
-                                <MemberInfo>
-                                    <MemberName>{item.players.name}</MemberName>
-                                </MemberInfo>
-                                <TouchableOpacity 
-                                    onPress={() => handleToggleMember(item.player_id, true)}
-                                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                                >
-                                    <Feather name="user-minus" size={20} color={colors.error} />
-                                </TouchableOpacity>
-                            </MemberCard>
-                        )}
-                        ListEmptyComponent={
-                            <EmptyContainer>
-                                <EmptyText>Nenhum membro encontrado</EmptyText>
-                            </EmptyContainer>
-                        }
-                    />
-                )}
+                    {isMembersExpanded && (
+                        <MembersScrollView>
+                            <MembersList>
+                                {members.map((member) => (
+                                    <MemberItem key={member.id}>
+                                        <MemberInfo>
+                                            <MemberName>{member.players.name}</MemberName>
+                                        </MemberInfo>
+                                    </MemberItem>
+                                ))}
+                            </MembersList>
+                        </MembersScrollView>
+                    )}
+                </Section>
+
             </MainContent>
 
             <Modal
                 animationType="slide"
                 transparent={true}
-                visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}
+                visible={isAddMemberModalVisible}
+                onRequestClose={() => setIsAddMemberModalVisible(false)}
             >
                 <ModalContainer>
                     <ModalContent>
                         <ModalHeader>
                             <ModalTitle>Adicionar Membros</ModalTitle>
-                            <TouchableOpacity onPress={() => setModalVisible(false)}>
+                            <TouchableOpacity onPress={() => setIsAddMemberModalVisible(false)}>
                                 <Feather name="x" size={24} color={colors.gray100} />
                             </TouchableOpacity>
                         </ModalHeader>
 
-                        <PlayersList
-                            data={communityMembers.filter(member => 
-                                !members.some(m => m.player_id === member.player_id)
-                            )}
-                            keyExtractor={(item) => item.id}
-                            renderItem={({ item }) => (
-                                <PlayerCard onPress={() => handleToggleMember(item.player_id, false)}>
-                                    <PlayerInfo>
-                                        <PlayerName>{item.players.name}</PlayerName>
-                                    </PlayerInfo>
-                                    <Feather 
-                                        name="user-plus" 
-                                        size={20} 
-                                        color={colors.primary}
-                                    />
-                                </PlayerCard>
-                            )}
-                            ListEmptyComponent={
-                                <EmptyContainer>
-                                    <EmptyText>Nenhum jogador disponível</EmptyText>
-                                </EmptyContainer>
-                            }
-                        />
+                        <MembersList>
+                            {communityMembers.map((member) => {
+                                const isCurrentMember = members.some(m => m.player_id === member.player_id);
+                                return (
+                                    <MemberItem key={member.id}>
+                                        <MemberInfo>
+                                            <MemberName>{member.players.name}</MemberName>
+                                        </MemberInfo>
+                                        <TouchableOpacity onPress={() => handleToggleMember(member.player_id, isCurrentMember)}>
+                                            <Feather
+                                                name={isCurrentMember ? "minus-circle" : "plus-circle"}
+                                                size={24}
+                                                color={isCurrentMember ? colors.error : colors.success}
+                                            />
+                                        </TouchableOpacity>
+                                    </MemberItem>
+                                );
+                            })}
+                        </MembersList>
                     </ModalContent>
                 </ModalContainer>
             </Modal>
@@ -315,9 +352,8 @@ const MainContent = styled.View`
 
 const SectionHeader = styled.View`
     flex-direction: row;
-    align-items: center;
     justify-content: space-between;
-    margin-top: 24px;
+    align-items: center;
     margin-bottom: 16px;
 `;
 
@@ -333,22 +369,21 @@ const Description = styled.Text`
     margin-bottom: 16px;
 `;
 
-const StatusContainer = styled.View`
-    flex-direction: row;
-    align-items: center;
-    margin-bottom: 24px;
-`;
-
-const StatusLabel = styled.Text`
-    font-size: 16px;
-    color: ${colors.gray300};
-    margin-right: 8px;
-`;
-
-const StatusText = styled.Text`
-    font-size: 16px;
-    color: ${colors.primary};
-    font-weight: bold;
+const CompetitionStatus = styled.Text<{ status: 'pending' | 'in_progress' | 'finished' }>`
+    color: ${props => {
+        switch (props.status) {
+            case 'pending':
+                return colors.gray300;
+            case 'in_progress':
+                return colors.primary;
+            case 'finished':
+                return colors.success;
+            default:
+                return colors.gray300;
+        }
+    }};
+    font-size: 14px;
+    font-weight: 500;
 `;
 
 const StartButton = styled.TouchableOpacity`
@@ -366,43 +401,25 @@ const StartButtonText = styled.Text`
     font-weight: bold;
 `;
 
-const ButtonsContainer = styled.View`
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
+const Section = styled.View`
+    margin-top: 24px;
 `;
 
-const ToggleButton = styled.TouchableOpacity`
-    padding: 8px;
-    border-radius: 8px;
-    background-color: ${colors.secondary};
+const MembersScrollView = styled.ScrollView`
+    max-height: 300px;
+    margin-top: 16px;
 `;
 
-const ManageButton = styled.TouchableOpacity`
-    flex-direction: row;
-    align-items: center;
-    background-color: ${colors.primary};
-    padding: 8px 16px;
-    border-radius: 8px;
+const MembersList = styled.View`
+    padding-bottom: 8px;
 `;
 
-const ManageButtonText = styled.Text`
-    color: ${colors.gray100};
-    font-size: 14px;
-    font-weight: 500;
-    margin-right: 8px;
-`;
-
-const MembersList = styled.FlatList`
-    flex-grow: 0;
-`;
-
-const MemberCard = styled.View`
+const MemberItem = styled.View`
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
     padding: 12px;
-    background-color: ${colors.secondary};
+    background-color: ${colors.surface};
     border-radius: 8px;
     margin-bottom: 8px;
 `;
@@ -412,8 +429,8 @@ const MemberInfo = styled.View`
 `;
 
 const MemberName = styled.Text`
-    font-size: 16px;
     color: ${colors.gray100};
+    font-size: 16px;
 `;
 
 const ModalContainer = styled.View`
@@ -443,27 +460,19 @@ const ModalTitle = styled.Text`
     color: ${colors.gray100};
 `;
 
-const PlayersList = styled.FlatList`
-    flex-grow: 0;
-`;
-
-const PlayerCard = styled.TouchableOpacity`
+const ManageButton = styled.TouchableOpacity`
     flex-direction: row;
     align-items: center;
-    justify-content: space-between;
-    padding: 12px;
-    background-color: ${colors.secondary};
+    background-color: ${colors.primary};
+    padding: 8px 16px;
     border-radius: 8px;
-    margin-bottom: 8px;
 `;
 
-const PlayerInfo = styled.View`
-    flex: 1;
-`;
-
-const PlayerName = styled.Text`
-    font-size: 16px;
+const ManageButtonText = styled.Text`
     color: ${colors.gray100};
+    font-size: 14px;
+    font-weight: 500;
+    margin-right: 8px;
 `;
 
 const EmptyContainer = styled.View`
@@ -489,46 +498,58 @@ const GamesList = styled.FlatList`
 `;
 
 const GameCard = styled.TouchableOpacity`
-    background-color: ${colors.secondary};
+    background-color: ${colors.surface};
     border-radius: 8px;
     padding: 16px;
-    margin-bottom: 16px;
+    margin-bottom: 8px;
 `;
 
-const GameInfo = styled.View`
+const GameTeams = styled.View`
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 8px;
 `;
 
-const GameTeam = styled.View`
-    align-items: center;
+const TeamScore = styled.View`
     flex: 1;
+    align-items: center;
 `;
 
-const GameTeamText = styled.Text`
-    font-size: 14px;
-    color: ${colors.gray300};
-    margin-bottom: 4px;
-`;
-
-const GameScore = styled.Text`
-    font-size: 24px;
-    font-weight: bold;
+const Score = styled.Text`
     color: ${colors.gray100};
+    font-size: 32px;
+    font-weight: bold;
 `;
 
-const GameVs = styled.Text`
-    font-size: 16px;
+const TeamName = styled.Text`
     color: ${colors.gray300};
+    font-size: 14px;
+    margin-top: 4px;
+`;
+
+const Versus = styled.Text`
+    color: ${colors.gray300};
+    font-size: 20px;
     margin-horizontal: 16px;
 `;
 
-const GameStatus = styled.Text`
+const GameStatus = styled.Text<{ status: 'pending' | 'in_progress' | 'finished' }>`
+    color: ${props => {
+        switch (props.status) {
+            case 'pending':
+                return colors.gray300;
+            case 'in_progress':
+                return colors.primary;
+            case 'finished':
+                return colors.success;
+            default:
+                return colors.gray300;
+        }
+    }};
     font-size: 14px;
-    color: ${colors.primary};
     text-align: center;
+    margin-top: 8px;
 `;
 
 const NewGameButton = styled.TouchableOpacity`

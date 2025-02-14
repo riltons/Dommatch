@@ -92,7 +92,10 @@ export default function GameDetails() {
                 <HeaderTitle>Detalhes do Jogo</HeaderTitle>
             </PageHeader>
 
-            <MainContent>
+            <MainContent 
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 32 }}
+            >
                 <GameStatus>
                     <StatusText>
                         {game.status === 'pending' && 'Aguardando Início'}
@@ -153,13 +156,14 @@ export default function GameDetails() {
                 </ScoreContainer>
 
                 {game.status === 'pending' && (
-                    <ActionButton onPress={handleStartGame}>
+                    <ActionButton variant="start" onPress={handleStartGame}>
                         <ActionButtonText>Iniciar Partida</ActionButtonText>
                     </ActionButton>
                 )}
 
                 {game.status === 'in_progress' && (
                     <ActionButton 
+                        variant="register"
                         onPress={() => router.push(`/comunidade/${communityId}/competicao/${competitionId}/jogo/${gameId}/registrar`)}
                     >
                         <ActionButtonText>Registrar Resultado</ActionButtonText>
@@ -168,29 +172,75 @@ export default function GameDetails() {
 
                 {game.rounds.length > 0 && (
                     <>
-                        <SectionTitle>Histórico de Rodadas</SectionTitle>
-                        {game.rounds.map((round, index) => (
-                            <RoundCard key={index}>
-                                <RoundInfo>
-                                    <RoundType>
-                                        {round.type === 'simple' && 'Vitória Simples'}
-                                        {round.type === 'carroca' && 'Vitória de Carroça'}
-                                        {round.type === 'la_e_lo' && 'Vitória de Lá-e-lô'}
-                                        {round.type === 'cruzada' && 'Vitória de Cruzada'}
-                                        {round.type === 'contagem' && 'Vitória por Contagem'}
-                                        {round.type === 'empate' && 'Empate'}
-                                    </RoundType>
-                                    {round.has_bonus && (
-                                        <BonusTag>+1 Bônus</BonusTag>
+                        <SectionTitle>Histórico de Partidas</SectionTitle>
+                        {game.rounds.map((round, index) => {
+                            // Calcula pontos baseado no tipo de vitória
+                            let points = 0;
+                            switch (round.type) {
+                                case 'simple':
+                                case 'contagem':
+                                    points = 1;
+                                    break;
+                                case 'carroca':
+                                    points = 2;
+                                    break;
+                                case 'la_e_lo':
+                                    points = 3;
+                                    break;
+                                case 'cruzada':
+                                    points = 4;
+                                    break;
+                            }
+                            
+                            // Adiciona bônus se houver
+                            if (round.has_bonus) {
+                                points += 1;
+                            }
+
+                            return (
+                                <RoundCard key={index}>
+                                    <RoundInfo>
+                                        <RoundTypeContainer>
+                                            <VictoryTypeTag>
+                                                {round.type === 'simple' && 'Simples'}
+                                                {round.type === 'carroca' && 'Carroça'}
+                                                {round.type === 'la_e_lo' && 'Lá-e-lô'}
+                                                {round.type === 'cruzada' && 'Cruzada'}
+                                                {round.type === 'contagem' && 'Contagem'}
+                                                {round.type === 'empate' && 'Empate'}
+                                            </VictoryTypeTag>
+                                            {round.type !== 'empate' && (
+                                                <PointsTag>+{points} pontos</PointsTag>
+                                            )}
+                                        </RoundTypeContainer>
+                                        {round.has_bonus && (
+                                            <BonusTag>+1 Bônus</BonusTag>
+                                        )}
+                                    </RoundInfo>
+                                    {round.type !== 'empate' && (
+                                        <>
+                                            <RoundWinnerText>
+                                                Vencedores: {round.winner_team === 1 ? (
+                                                    team1Players.map((player, index) => (
+                                                        <Text key={player.id}>
+                                                            {player.name}
+                                                            {index < team1Players.length - 1 ? ' e ' : ''}
+                                                        </Text>
+                                                    ))
+                                                ) : (
+                                                    team2Players.map((player, index) => (
+                                                        <Text key={player.id}>
+                                                            {player.name}
+                                                            {index < team2Players.length - 1 ? ' e ' : ''}
+                                                        </Text>
+                                                    ))
+                                                )}
+                                            </RoundWinnerText>
+                                        </>
                                     )}
-                                </RoundInfo>
-                                {round.type !== 'empate' && (
-                                    <RoundWinnerText>
-                                        Vencedor: Time {round.winner_team}
-                                    </RoundWinnerText>
-                                )}
-                            </RoundCard>
-                        ))}
+                                </RoundCard>
+                            );
+                        })}
                     </>
                 )}
             </MainContent>
@@ -228,7 +278,7 @@ const HeaderTitle = styled.Text`
     color: ${colors.gray100};
 `;
 
-const MainContent = styled.View`
+const MainContent = styled.ScrollView`
     flex: 1;
     padding: 20px;
 `;
@@ -271,8 +321,8 @@ const WinnerText = styled.Text`
 `;
 
 const RoundWinnerText = styled.Text`
+    color: ${colors.textSecondary};
     font-size: 14px;
-    color: ${colors.gray300};
 `;
 
 const TeamContainer = styled.View<{ winner?: boolean }>`
@@ -318,13 +368,13 @@ const Versus = styled.Text`
     margin-horizontal: 16px;
 `;
 
-const ActionButton = styled.TouchableOpacity`
-    background-color: ${colors.primary};
+const ActionButton = styled.TouchableOpacity<{ variant?: 'start' | 'register' }>`
+    background-color: ${props => props.variant === 'start' ? colors.success : colors.primary};
     padding: 16px;
     border-radius: 8px;
     align-items: center;
     justify-content: center;
-    margin-top: 32px;
+    margin-top: 24px;
 `;
 
 const ActionButtonText = styled.Text`
@@ -342,7 +392,7 @@ const SectionTitle = styled.Text`
 `;
 
 const RoundCard = styled.View`
-    background-color: ${colors.secondary};
+    background-color: ${colors.surface};
     border-radius: 8px;
     padding: 16px;
     margin-bottom: 8px;
@@ -351,18 +401,39 @@ const RoundCard = styled.View`
 const RoundInfo = styled.View`
     flex-direction: row;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
+    justify-content: space-between;
 `;
 
-const RoundType = styled.Text`
-    font-size: 16px;
-    color: ${colors.gray100};
+const RoundTypeContainer = styled.View`
+    flex-direction: row;
+    align-items: center;
+    flex: 1;
+`;
+
+const VictoryTypeTag = styled.Text`
+    color: ${colors.primary};
+    font-size: 14px;
     font-weight: bold;
+    padding: 4px 8px;
+    background-color: ${colors.primaryLight}20;
+    border-radius: 4px;
+`;
+
+const PointsTag = styled.Text`
+    color: ${colors.success};
+    font-size: 14px;
+    font-weight: bold;
+    margin-left: 8px;
 `;
 
 const BonusTag = styled.Text`
+    color: ${colors.warning};
     font-size: 14px;
-    color: ${colors.primary};
     font-weight: bold;
     margin-left: 8px;
+    padding: 4px 8px;
+    background-color: ${colors.surface};
+    border-radius: 4px;
+    border: 1px solid ${colors.warning};
 `;

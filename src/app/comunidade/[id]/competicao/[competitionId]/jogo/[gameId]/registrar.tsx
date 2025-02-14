@@ -68,60 +68,64 @@ export default function RegisterResult() {
     const router = useRouter();
     const { id: communityId, competitionId, gameId } = useLocalSearchParams();
     const [selectedType, setSelectedType] = useState<VictoryType | null>(null);
-    const [selectedTeam, setSelectedTeam] = useState<1 | 2 | null>(null);
-    const [game, setGame] = useState<any>(null);
+    const [winnerTeam, setWinnerTeam] = useState<'team1' | 'team2' | null>(null);
+    const [loading, setLoading] = useState(false);
     const [team1Players, setTeam1Players] = useState<Player[]>([]);
     const [team2Players, setTeam2Players] = useState<Player[]>([]);
 
     useEffect(() => {
-        loadGame();
+        loadPlayers();
     }, []);
 
-    const loadGame = async () => {
+    const loadPlayers = async () => {
         try {
-            const data = await gameService.getById(gameId as string);
-            setGame(data);
-            
-            // Carregar jogadores dos times
-            const players = await Promise.all(
-                [...data.team1, ...data.team2].map(async (playerId) => {
-                    const playerData = await competitionService.getPlayerById(playerId);
-                    return playerData;
-                })
-            );
+            const game = await gameService.getById(gameId as string);
+            if (!game) return;
 
-            setTeam1Players(players.slice(0, data.team1.length));
-            setTeam2Players(players.slice(data.team1.length));
+            const team1 = await Promise.all(game.team1.map(async (playerId) => {
+                const player = await competitionService.getPlayerById(playerId);
+                return player;
+            }));
+
+            const team2 = await Promise.all(game.team2.map(async (playerId) => {
+                const player = await competitionService.getPlayerById(playerId);
+                return player;
+            }));
+
+            setTeam1Players(team1);
+            setTeam2Players(team2);
         } catch (error) {
-            console.error(error);
-            Alert.alert('Erro', 'Não foi possível carregar o jogo');
+            console.error('Erro ao carregar jogadores:', error);
+            Alert.alert('Erro', 'Não foi possível carregar os jogadores');
         }
     };
 
-    const handleRegister = async () => {
+    const handleRegisterResult = async () => {
         if (!selectedType) {
             Alert.alert('Erro', 'Selecione o tipo de vitória');
             return;
         }
 
-        if (selectedType !== 'empate' && !selectedTeam) {
+        if (selectedType !== 'empate' && !winnerTeam) {
             Alert.alert('Erro', 'Selecione o time vencedor');
             return;
         }
 
         try {
-            const updatedGame = await gameService.registerRound(
-                gameId as string,
-                selectedType,
-                selectedType === 'empate' ? null : selectedTeam
-            );
-
-            if (updatedGame.status === 'finished') {
+            setLoading(true);
+            const winnerTeamNumber = winnerTeam === 'team1' ? 1 : winnerTeam === 'team2' ? 2 : null;
+            const result = await gameService.registerRound(gameId as string, selectedType, winnerTeamNumber);
+            
+            if (result.status === 'finished') {
                 let message = 'Jogo finalizado!';
-                if (updatedGame.is_buchuda) {
-                    message = 'BUCHUDA! 🎉\nUma dupla venceu sem que a adversária marcasse pontos!';
-                } else if (updatedGame.is_buchuda_de_re) {
-                    message = 'BUCHUDA DE RÉ! 🎉🔄\nIncrível virada! A dupla venceu após estar perdendo de 5x0!';
+                if (result.team1_score === 6 && result.team2_score === 0) {
+                    message = 'BUCHUDA! 🎉\nTime 1 venceu sem que o adversário marcasse pontos!';
+                } else if (result.team2_score === 6 && result.team1_score === 0) {
+                    message = 'BUCHUDA! 🎉\nTime 2 venceu sem que o adversário marcasse pontos!';
+                } else if (result.team1_was_losing_5_0) {
+                    message = 'BUCHUDA DE RÉ! 🎉🔄\nIncrível virada do Time 1 após estar perdendo de 5x0!';
+                } else if (result.team2_was_losing_5_0) {
+                    message = 'BUCHUDA DE RÉ! 🎉🔄\nIncrível virada do Time 2 após estar perdendo de 5x0!';
                 }
                 Alert.alert('Parabéns!', message, [
                     { text: 'OK', onPress: () => router.back() }
@@ -130,33 +134,50 @@ export default function RegisterResult() {
                 router.back();
             }
         } catch (error) {
-            console.error(error);
+            console.error('Erro ao registrar resultado:', error);
             Alert.alert('Erro', 'Não foi possível registrar o resultado');
+        } finally {
+            setLoading(false);
         }
     };
 
+    if (loading) {
+        return (
+            <LoadingContainer>
+                <ActivityIndicator size="large" color={colors.primary} />
+            </LoadingContainer>
+        );
+    }
+
     return (
         <Container>
-            <PageHeader>
+            <Header>
                 <BackButton onPress={() => router.back()}>
                     <Feather name="arrow-left" size={24} color={colors.gray100} />
                 </BackButton>
                 <HeaderTitle>Registrar Resultado</HeaderTitle>
-            </PageHeader>
+            </Header>
 
-            <MainContent>
+            <MainContent 
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 32 }}
+            >
                 <SectionTitle>Tipo de Vitória</SectionTitle>
+
                 {victoryOptions.map(option => (
                     <VictoryOption
                         key={option.type}
-                        onPress={() => setSelectedType(option.type)}
+                        onPress={() => {
+                            setSelectedType(option.type);
+                            if (option.type === 'empate') {
+                                setWinnerTeam(null);
+                            }
+                        }}
                         selected={selectedType === option.type}
                     >
                         <VictoryOptionContent>
-                            <VictoryOptionTitle>{option.label}</VictoryOptionTitle>
-                            <VictoryOptionDescription>
-                                {option.description}
-                            </VictoryOptionDescription>
+                            <VictoryTitle>{option.label}</VictoryTitle>
+                            <VictoryDescription>{option.description}</VictoryDescription>
                         </VictoryOptionContent>
                         {selectedType === option.type && (
                             <Feather name="check" size={24} color={colors.primary} />
@@ -169,28 +190,29 @@ export default function RegisterResult() {
                         <SectionTitle>Time Vencedor</SectionTitle>
                         <TeamOptions>
                             <TeamOption
-                                onPress={() => setSelectedTeam(1)}
-                                selected={selectedTeam === 1}
+                                selected={winnerTeam === 'team1'}
+                                onPress={() => setWinnerTeam('team1')}
                             >
                                 <TeamOptionContent>
                                     {team1Players.map((player, index) => (
-                                        <TeamPlayerName key={player.id}>
+                                        <TeamOptionText key={player.id}>
                                             {player.name}
                                             {index < team1Players.length - 1 ? ' e ' : ''}
-                                        </TeamPlayerName>
+                                        </TeamOptionText>
                                     ))}
                                 </TeamOptionContent>
                             </TeamOption>
+
                             <TeamOption
-                                onPress={() => setSelectedTeam(2)}
-                                selected={selectedTeam === 2}
+                                selected={winnerTeam === 'team2'}
+                                onPress={() => setWinnerTeam('team2')}
                             >
                                 <TeamOptionContent>
                                     {team2Players.map((player, index) => (
-                                        <TeamPlayerName key={player.id}>
+                                        <TeamOptionText key={player.id}>
                                             {player.name}
                                             {index < team2Players.length - 1 ? ' e ' : ''}
-                                        </TeamPlayerName>
+                                        </TeamOptionText>
                                     ))}
                                 </TeamOptionContent>
                             </TeamOption>
@@ -198,11 +220,7 @@ export default function RegisterResult() {
                     </>
                 )}
 
-                <RegisterButton 
-                    onPress={handleRegister}
-                    disabled={!selectedType || (selectedType !== 'empate' && !selectedTeam)}
-                    style={{ opacity: (!selectedType || (selectedType !== 'empate' && !selectedTeam)) ? 0.5 : 1 }}
-                >
+                <RegisterButton onPress={handleRegisterResult}>
                     <RegisterButtonText>Registrar Resultado</RegisterButtonText>
                 </RegisterButton>
             </MainContent>
@@ -215,10 +233,19 @@ const Container = styled.View`
     background-color: ${colors.backgroundDark};
 `;
 
-const PageHeader = styled.View`
-    padding: 20px;
-    background-color: ${colors.secondary};
+const LoadingContainer = styled.View`
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    background-color: ${colors.backgroundDark};
+`;
+
+const Header = styled.View`
+    padding: 16px;
     padding-top: 60px;
+    background-color: ${colors.backgroundMedium};
+    border-bottom-width: 1px;
+    border-bottom-color: ${colors.border};
     flex-direction: row;
     align-items: center;
 `;
@@ -228,33 +255,33 @@ const BackButton = styled.TouchableOpacity`
 `;
 
 const HeaderTitle = styled.Text`
+    color: ${colors.textPrimary};
     font-size: 24px;
     font-weight: bold;
-    color: ${colors.gray100};
 `;
 
 const MainContent = styled.ScrollView`
     flex: 1;
-    padding: 20px;
+    padding: 16px;
 `;
 
 const SectionTitle = styled.Text`
-    font-size: 18px;
+    color: ${colors.textPrimary};
+    font-size: 20px;
     font-weight: bold;
-    color: ${colors.gray100};
     margin-bottom: 16px;
     margin-top: 24px;
 `;
 
 const VictoryOption = styled.TouchableOpacity<{ selected: boolean }>`
-    background-color: ${colors.secondary};
+    background-color: ${colors.backgroundMedium};
     border-radius: 8px;
     padding: 16px;
     margin-bottom: 8px;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    border: 2px solid ${props => props.selected ? colors.primary : colors.secondary};
+    border: 1px solid ${props => props.selected ? colors.primary : colors.border};
 `;
 
 const VictoryOptionContent = styled.View`
@@ -262,44 +289,41 @@ const VictoryOptionContent = styled.View`
     margin-right: 16px;
 `;
 
-const VictoryOptionTitle = styled.Text`
+const VictoryTitle = styled.Text`
+    color: ${colors.textPrimary};
     font-size: 16px;
     font-weight: bold;
-    color: ${colors.gray100};
-    margin-bottom: 4px;
 `;
 
-const VictoryOptionDescription = styled.Text`
+const VictoryDescription = styled.Text`
+    color: ${colors.textSecondary};
     font-size: 14px;
-    color: ${colors.gray300};
+    margin-top: 4px;
 `;
 
 const TeamOptions = styled.View`
     flex-direction: row;
-    justify-content: space-between;
-    margin-bottom: 24px;
+    margin-horizontal: -4px;
 `;
 
 const TeamOption = styled.TouchableOpacity<{ selected: boolean }>`
     flex: 1;
-    background-color: ${colors.secondary};
+    background-color: ${colors.backgroundMedium};
     border-radius: 8px;
     padding: 16px;
     margin-horizontal: 4px;
     align-items: center;
-    border: 2px solid ${props => props.selected ? colors.primary : colors.secondary};
+    border: 1px solid ${props => props.selected ? colors.primary : colors.border};
 `;
 
 const TeamOptionContent = styled.View`
-    flex-direction: row;
-    flex-wrap: wrap;
+    align-items: center;
     justify-content: center;
 `;
 
-const TeamPlayerName = styled.Text`
+const TeamOptionText = styled.Text`
+    color: ${colors.textPrimary};
     font-size: 16px;
-    font-weight: bold;
-    color: ${colors.gray100};
     text-align: center;
 `;
 
@@ -308,12 +332,12 @@ const RegisterButton = styled.TouchableOpacity`
     padding: 16px;
     border-radius: 8px;
     align-items: center;
-    justify-content: center;
-    margin-top: 32px;
+    margin-top: 24px;
+    margin-bottom: 24px;
 `;
 
 const RegisterButtonText = styled.Text`
-    color: ${colors.white};
+    color: ${colors.textPrimary};
     font-size: 16px;
     font-weight: bold;
 `;
