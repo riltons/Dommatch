@@ -1,9 +1,37 @@
-import { View, ScrollView } from "react-native"
-import styled from "styled-components/native"
-import { colors } from "@/styles/colors"
-import { MaterialCommunityIcons } from "@expo/vector-icons"
-import { PageTransition } from "@/components/Transitions"
-import { Header } from "@/components/Header"
+import React, { useEffect, useState } from "react";
+import { View, ScrollView, TouchableOpacity, Dimensions } from "react-native";
+import styled from "styled-components/native";
+import { colors } from "@/styles/colors";
+import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
+import { PageTransition } from "@/components/Transitions";
+import { Header } from "@/components/Header";
+import { useRouter } from "expo-router";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { LineChart } from "react-native-chart-kit";
+
+interface Stats {
+    totalGames: number;
+    totalCompetitions: number;
+    totalPlayers: number;
+    averageScore: number;
+}
+
+interface Player {
+    id: string;
+    name: string;
+    wins: number;
+    buchudas: number;
+    buchudasDeRe: number;
+    winRate: number;
+}
+
+interface Activity {
+    id: string;
+    type: 'game' | 'competition' | 'player';
+    description: string;
+    time: Date;
+}
 
 const Container = styled.View`
     flex: 1;
@@ -19,6 +47,23 @@ const Content = styled.View`
     padding-bottom: 20px;
 `;
 
+const WelcomeContainer = styled.View`
+    padding: 20px;
+    margin-bottom: 10px;
+`;
+
+const WelcomeText = styled.Text`
+    font-size: 28px;
+    font-weight: bold;
+    color: ${colors.gray100};
+`;
+
+const WelcomeSubtext = styled.Text`
+    font-size: 16px;
+    color: ${colors.gray300};
+    margin-top: 4px;
+`;
+
 const StatisticsContainer = styled.View`
     flex-direction: row;
     flex-wrap: wrap;
@@ -31,15 +76,24 @@ const StatCardWrapper = styled.View`
     margin-bottom: 16px;
 `;
 
-const StatCard = styled.View`
-    background-color: ${colors.secondary};
-    border-radius: 12px;
+const StatCard = styled.TouchableOpacity`
+    background-color: ${colors.backgroundMedium};
+    border-radius: 16px;
     padding: 20px;
     width: 100%;
     align-items: center;
-    margin: 0;
     elevation: 3;
     border: 1px solid ${colors.tertiary}40;
+`;
+
+const StatIcon = styled.View`
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    background-color: ${colors.primary}20;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
 `;
 
 const StatValue = styled.Text`
@@ -51,139 +105,317 @@ const StatValue = styled.Text`
 
 const StatLabel = styled.Text`
     font-size: 14px;
-    color: ${colors.gray200};
+    color: ${colors.gray300};
     margin-top: 4px;
 `;
 
-const RecentActivityCard = styled.View`
-    background-color: ${colors.secondary};
-    border-radius: 12px;
-    margin: 0 20px 20px;
+const ChartContainer = styled.View`
+    background-color: ${colors.backgroundMedium};
+    border-radius: 16px;
     padding: 20px;
+    margin: 0 20px 20px;
     border: 1px solid ${colors.tertiary}40;
 `;
 
-const ActivityTitle = styled.Text`
-    font-size: 20px;
+const ChartTitle = styled.Text`
+    font-size: 16px;
     font-weight: bold;
     color: ${colors.gray100};
     margin-bottom: 16px;
 `;
 
-const ActivityItem = styled.View`
+const SectionContainer = styled.View`
+    margin: 0 20px 20px;
+`;
+
+const SectionHeader = styled.View`
     flex-direction: row;
     align-items: center;
-    padding: 12px 0;
-    border-bottom-width: 1px;
-    border-bottom-color: ${colors.tertiary}20;
+    justify-content: space-between;
+    margin-bottom: 16px;
+`;
+
+const SectionTitle = styled.Text`
+    font-size: 20px;
+    font-weight: bold;
+    color: ${colors.gray100};
+`;
+
+const ViewAllButton = styled.TouchableOpacity`
+    flex-direction: row;
+    align-items: center;
+`;
+
+const ViewAllText = styled.Text`
+    color: ${colors.primary};
+    font-size: 14px;
+    margin-right: 4px;
+`;
+
+const PlayerCard = styled.TouchableOpacity`
+    flex-direction: row;
+    align-items: center;
+    background-color: ${colors.backgroundMedium};
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid ${colors.tertiary}40;
+`;
+
+const PlayerInfo = styled.View`
+    flex: 1;
+    margin-left: 12px;
+`;
+
+const PlayerName = styled.Text`
+    font-size: 16px;
+    font-weight: bold;
+    color: ${colors.gray100};
+`;
+
+const PlayerStats = styled.Text`
+    font-size: 14px;
+    color: ${colors.gray300};
+    margin-top: 4px;
+`;
+
+const ActivityCard = styled.TouchableOpacity`
+    flex-direction: row;
+    align-items: center;
+    background-color: ${colors.backgroundMedium};
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid ${colors.tertiary}40;
+`;
+
+const ActivityInfo = styled.View`
+    flex: 1;
+    margin-left: 12px;
 `;
 
 const ActivityText = styled.Text`
-    flex: 1;
     font-size: 14px;
-    color: ${colors.gray200};
-    margin-left: 12px;
+    color: ${colors.gray100};
 `;
 
 const ActivityTime = styled.Text`
     font-size: 12px;
-    color: ${colors.gray400};
-    margin-left: 8px;
+    color: ${colors.gray300};
+    margin-top: 4px;
 `;
 
-export default function Dashboard() {
+const Dashboard: React.FC = () => {
+    const router = useRouter();
+    const [stats, setStats] = useState<Stats>({
+        totalGames: 156,
+        totalCompetitions: 12,
+        totalPlayers: 24,
+        averageScore: 4.8
+    });
+
+    const [topPlayers, setTopPlayers] = useState<Player[]>([
+        {
+            id: '1',
+            name: 'Eliane',
+            wins: 45,
+            buchudas: 3,
+            buchudasDeRe: 1,
+            winRate: 75
+        },
+        {
+            id: '2',
+            name: 'Bruna',
+            wins: 42,
+            buchudas: 2,
+            buchudasDeRe: 0,
+            winRate: 70
+        },
+        {
+            id: '3',
+            name: 'Mariana',
+            wins: 38,
+            buchudas: 2,
+            buchudasDeRe: 1,
+            winRate: 63
+        }
+    ]);
+
+    const [recentActivities, setRecentActivities] = useState<Activity[]>([
+        {
+            id: '1',
+            type: 'game',
+            description: 'Eliane e Bruna venceram com uma buchuda!',
+            time: new Date(2024, 1, 14, 16, 30)
+        },
+        {
+            id: '2',
+            type: 'competition',
+            description: 'Nova competição "Torneio de Verão" criada',
+            time: new Date(2024, 1, 14, 15, 45)
+        },
+        {
+            id: '3',
+            type: 'player',
+            description: 'Mariana completou 50 jogos!',
+            time: new Date(2024, 1, 14, 14, 20)
+        }
+    ]);
+
+    const chartData = {
+        labels: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun"],
+        datasets: [{
+            data: [20, 45, 28, 80, 99, 43]
+        }]
+    };
+
+    const chartConfig = {
+        backgroundColor: colors.backgroundMedium,
+        backgroundGradientFrom: colors.backgroundMedium,
+        backgroundGradientTo: colors.backgroundMedium,
+        decimalPlaces: 0,
+        color: (opacity = 1) => colors.primary,
+        labelColor: (opacity = 1) => colors.gray300,
+        style: {
+            borderRadius: 16
+        },
+        propsForDots: {
+            r: "6",
+            strokeWidth: "2",
+            stroke: colors.primary
+        }
+    };
+
     return (
         <PageTransition>
             <Container>
                 <Header />
-                <ScrollContent>
+                <ScrollContent showsVerticalScrollIndicator={false}>
                     <Content>
+                        <WelcomeContainer>
+                            <WelcomeText>Olá!</WelcomeText>
+                            <WelcomeSubtext>Confira as estatísticas do seu domínio</WelcomeSubtext>
+                        </WelcomeContainer>
+
                         <StatisticsContainer>
                             <StatCardWrapper>
-                                <StatCard>
-                                    <MaterialCommunityIcons 
-                                        name="cards-playing-outline" 
-                                        size={28} 
-                                        color={colors.accent} 
-                                    />
-                                    <StatValue>12</StatValue>
-                                    <StatLabel>Partidas Hoje</StatLabel>
+                                <StatCard onPress={() => router.push("/jogos")}>
+                                    <StatIcon>
+                                        <MaterialCommunityIcons name="cards-playing-outline" size={24} color={colors.primary} />
+                                    </StatIcon>
+                                    <StatValue>{stats.totalGames}</StatValue>
+                                    <StatLabel>Jogos</StatLabel>
                                 </StatCard>
                             </StatCardWrapper>
 
                             <StatCardWrapper>
-                                <StatCard>
-                                    <MaterialCommunityIcons 
-                                        name="trophy" 
-                                        size={28} 
-                                        color={colors.accent} 
-                                    />
-                                    <StatValue>5</StatValue>
-                                    <StatLabel>Vitórias</StatLabel>
+                                <StatCard onPress={() => router.push("/competicoes")}>
+                                    <StatIcon>
+                                        <MaterialCommunityIcons name="trophy-outline" size={24} color={colors.primary} />
+                                    </StatIcon>
+                                    <StatValue>{stats.totalCompetitions}</StatValue>
+                                    <StatLabel>Competições</StatLabel>
                                 </StatCard>
                             </StatCardWrapper>
 
                             <StatCardWrapper>
-                                <StatCard>
-                                    <MaterialCommunityIcons 
-                                        name="account-group" 
-                                        size={28} 
-                                        color={colors.accent} 
-                                    />
-                                    <StatValue>156</StatValue>
+                                <StatCard onPress={() => router.push("/jogadores")}>
+                                    <StatIcon>
+                                        <MaterialCommunityIcons name="account-group-outline" size={24} color={colors.primary} />
+                                    </StatIcon>
+                                    <StatValue>{stats.totalPlayers}</StatValue>
                                     <StatLabel>Jogadores</StatLabel>
                                 </StatCard>
                             </StatCardWrapper>
 
                             <StatCardWrapper>
                                 <StatCard>
-                                    <MaterialCommunityIcons 
-                                        name="star" 
-                                        size={28} 
-                                        color={colors.accent} 
-                                    />
-                                    <StatValue>1250</StatValue>
-                                    <StatLabel>Pontos</StatLabel>
+                                    <StatIcon>
+                                        <MaterialCommunityIcons name="star-outline" size={24} color={colors.primary} />
+                                    </StatIcon>
+                                    <StatValue>{stats.averageScore.toFixed(1)}</StatValue>
+                                    <StatLabel>Média de Pontos</StatLabel>
                                 </StatCard>
                             </StatCardWrapper>
                         </StatisticsContainer>
 
-                        <RecentActivityCard>
-                            <ActivityTitle>Atividades Recentes</ActivityTitle>
-                            
-                            <ActivityItem>
-                                <MaterialCommunityIcons 
-                                    name="cards-playing" 
-                                    size={24} 
-                                    color={colors.accent} 
-                                />
-                                <ActivityText>Partida finalizada contra João</ActivityText>
-                                <ActivityTime>2h atrás</ActivityTime>
-                            </ActivityItem>
+                        <ChartContainer>
+                            <ChartTitle>Jogos por Mês</ChartTitle>
+                            <LineChart
+                                data={chartData}
+                                width={Dimensions.get("window").width - 80}
+                                height={220}
+                                chartConfig={chartConfig}
+                                bezier
+                                style={{
+                                    marginVertical: 8,
+                                    borderRadius: 16
+                                }}
+                            />
+                        </ChartContainer>
 
-                            <ActivityItem>
-                                <MaterialCommunityIcons 
-                                    name="trophy" 
-                                    size={24} 
-                                    color={colors.accent} 
-                                />
-                                <ActivityText>Vitória contra equipe Dominadores</ActivityText>
-                                <ActivityTime>3h atrás</ActivityTime>
-                            </ActivityItem>
+                        <SectionContainer>
+                            <SectionHeader>
+                                <SectionTitle>Top Jogadores</SectionTitle>
+                                <ViewAllButton onPress={() => router.push("/ranking")}>
+                                    <ViewAllText>Ver todos</ViewAllText>
+                                    <Feather name="chevron-right" size={16} color={colors.primary} />
+                                </ViewAllButton>
+                            </SectionHeader>
 
-                            <ActivityItem>
-                                <MaterialCommunityIcons 
-                                    name="star" 
-                                    size={24} 
-                                    color={colors.accent} 
-                                />
-                                <ActivityText>+150 pontos conquistados</ActivityText>
-                                <ActivityTime>5h atrás</ActivityTime>
-                            </ActivityItem>
-                        </RecentActivityCard>
+                            {topPlayers.map((player, index) => (
+                                <PlayerCard key={player.id} onPress={() => router.push(`/jogador/${player.id}`)}>
+                                    <MaterialCommunityIcons 
+                                        name={index === 0 ? "crown" : "star"} 
+                                        size={24} 
+                                        color={index === 0 ? "#FFD700" : colors.gray300} 
+                                    />
+                                    <PlayerInfo>
+                                        <PlayerName>{player.name}</PlayerName>
+                                        <PlayerStats>
+                                            {player.wins} vitórias • {player.buchudas} buchudas • {player.winRate}% aproveitamento
+                                        </PlayerStats>
+                                    </PlayerInfo>
+                                </PlayerCard>
+                            ))}
+                        </SectionContainer>
+
+                        <SectionContainer>
+                            <SectionHeader>
+                                <SectionTitle>Atividades Recentes</SectionTitle>
+                                <ViewAllButton>
+                                    <ViewAllText>Ver todas</ViewAllText>
+                                    <Feather name="chevron-right" size={16} color={colors.primary} />
+                                </ViewAllButton>
+                            </SectionHeader>
+
+                            {recentActivities.map(activity => (
+                                <ActivityCard key={activity.id}>
+                                    <MaterialCommunityIcons
+                                        name={
+                                            activity.type === 'game' 
+                                                ? "cards-playing" 
+                                                : activity.type === 'competition' 
+                                                    ? "trophy" 
+                                                    : "account"
+                                        }
+                                        size={24}
+                                        color={colors.primary}
+                                    />
+                                    <ActivityInfo>
+                                        <ActivityText>{activity.description}</ActivityText>
+                                        <ActivityTime>
+                                            {format(activity.time, "d 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+                                        </ActivityTime>
+                                    </ActivityInfo>
+                                </ActivityCard>
+                            ))}
+                        </SectionContainer>
                     </Content>
                 </ScrollContent>
             </Container>
         </PageTransition>
-    )
+    );
 }
+
+export default Dashboard;

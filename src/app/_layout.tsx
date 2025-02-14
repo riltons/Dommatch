@@ -39,7 +39,7 @@ export default function RootLayout() {
                 ) : (
                     // Rotas protegidas
                     <Stack.Screen 
-                        name="(pages)" 
+                        name="(tabs)" 
                         options={{ 
                             headerShown: false,
                         }} 
