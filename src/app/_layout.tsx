@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 import { useAuth } from '../hooks/useAuth';
+import { AuthProvider } from '../contexts/AuthProvider';
 import { StatusBar, Platform } from "react-native";
 import { SafeAreaView } from 'react-native';
 import styled from 'styled-components/native';
@@ -13,40 +14,42 @@ export default function RootLayout() {
     const statusBarHeight = StatusBar.currentHeight || 0;
 
     return (
-        <SafeContainer statusBarHeight={statusBarHeight}>
-            <StatusBar 
-                barStyle="light-content"
-                backgroundColor={colors.backgroundDark}
-                translucent
-            />
-            <Stack screenOptions={{ headerShown: false }}>
-                {!session ? (
-                    // Rotas públicas
-                    <>
-                        <Stack.Screen
-                            name="login"
-                            options={{
-                                title: 'Login'
-                            }}
-                        />
-                        <Stack.Screen
-                            name="register"
-                            options={{
-                                title: 'Criar Conta'
+        <AuthProvider>
+            <SafeContainer statusBarHeight={statusBarHeight}>
+                <StatusBar 
+                    barStyle="light-content"
+                    backgroundColor={colors.backgroundDark}
+                    translucent
+                />
+                <Stack screenOptions={{ headerShown: false }}>
+                    {!session ? (
+                        // Rotas públicas
+                        <>
+                            <Stack.Screen
+                                name="login"
+                                options={{
+                                    title: 'Login'
+                                }}
+                            />
+                            <Stack.Screen
+                                name="register"
+                                options={{
+                                    title: 'Criar Conta'
+                                }} 
+                            />
+                        </>
+                    ) : (
+                        // Rotas protegidas
+                        <Stack.Screen 
+                            name="(pages)" 
+                            options={{ 
+                                headerShown: false,
                             }} 
                         />
-                    </>
-                ) : (
-                    // Rotas protegidas
-                    <Stack.Screen 
-                        name="(pages)" 
-                        options={{ 
-                            headerShown: false,
-                        }} 
-                    />
-                )}
-            </Stack>
-        </SafeContainer>
+                    )}
+                </Stack>
+            </SafeContainer>
+        </AuthProvider>
     );
 }
 
