@@ -71,23 +71,25 @@ export default function CompetitionDetails() {
     const loadCompetitionAndMembers = useCallback(async () => {
         try {
             setIsLoading(true);
-            const [competitionData, membersData, communityMembersData] = await Promise.all([
-                competitionService.getById(competitionId as string),
-                competitionService.listMembers(competitionId as string),
-                communityMembersService.listMembers(communityId as string)
-            ]);
+            const competition = await competitionService.getById(competitionId as string);
+            const members = await competitionService.getMembers(competitionId as string);
+            const games = await competitionService.getGames(competitionId as string);
 
-            setCompetition(competitionData);
-            setMembers(membersData);
-            setCommunityMembers(communityMembersData);
-            await loadGames();
+            setCompetition(competition);
+            setMembers(members);
+            setGames(games);
+
+            if (competition.status === 'finished') {
+                const results = await competitionService.getCompetitionResults(competitionId as string);
+                setResults(results);
+            }
         } catch (error) {
-            console.error(error);
-            Alert.alert('Erro', 'Não foi possível carregar os dados da competição');
+            console.error('Erro ao carregar competição:', error);
+            Alert.alert('Erro', 'Não foi possível carregar a competição');
         } finally {
             setIsLoading(false);
         }
-    }, [competitionId, communityId]);
+    }, [competitionId]);
 
     const loadGames = useCallback(async () => {
         try {
@@ -214,79 +216,61 @@ export default function CompetitionDetails() {
                         </FinishButton>
                     )}
 
-                    {competition?.status === 'finished' && results ? (
+                    {competition?.status === 'finished' ? (
                         <>
-                            <Section>
-                                <SectionTitle>Classificação Individual</SectionTitle>
-                                {results.players.map((player, index) => (
-                                    <PlayerCard key={player.id}>
-                                        <Position>{index + 1}º</Position>
-                                        <PlayerInfo>
-                                            <PlayerName>{player.name}</PlayerName>
-                                            <PlayerStats>
-                                                <StatItem>
-                                                    <StatLabel>Pontos:</StatLabel>
-                                                    <StatValue>{player.score}</StatValue>
-                                                </StatItem>
-                                                <StatItem>
-                                                    <StatLabel>V/D:</StatLabel>
-                                                    <StatValue>{player.wins}/{player.losses}</StatValue>
-                                                </StatItem>
-                                                {player.buchudas > 0 && (
-                                                    <StatItem>
-                                                        <StatLabel>Buchudas:</StatLabel>
-                                                        <StatValue>{player.buchudas}</StatValue>
-                                                    </StatItem>
-                                                )}
-                                                {player.buchudasDeRe > 0 && (
-                                                    <StatItem>
-                                                        <StatLabel>Buchudas de Ré:</StatLabel>
-                                                        <StatValue>{player.buchudasDeRe}</StatValue>
-                                                    </StatItem>
-                                                )}
-                                            </PlayerStats>
-                                        </PlayerInfo>
-                                    </PlayerCard>
-                                ))}
-                            </Section>
+                            <ViewScoresButton 
+                                onPress={() => router.push(`/comunidade/${communityId}/competicao/${competitionId}/scores`)}
+                            >
+                                <Feather name="award" size={24} color={colors.gray100} />
+                                <ViewScoresButtonText>Ver Classificação</ViewScoresButtonText>
+                            </ViewScoresButton>
 
                             <Section>
-                                <SectionTitle>Classificação por Duplas</SectionTitle>
-                                {results.pairs.map((pair, index) => (
-                                    <PairCard key={pair.players.join('_')}>
-                                        <Position>{index + 1}º</Position>
-                                        <PairInfo>
-                                            <PairPlayers>
-                                                {pair.players.map(playerId => {
-                                                    const player = results.players.find(p => p.id === playerId);
-                                                    return player?.name;
-                                                }).join(' e ')}
-                                            </PairPlayers>
-                                            <PairStats>
-                                                <StatItem>
-                                                    <StatLabel>Pontos:</StatLabel>
-                                                    <StatValue>{pair.score}</StatValue>
-                                                </StatItem>
-                                                <StatItem>
-                                                    <StatLabel>V/D:</StatLabel>
-                                                    <StatValue>{pair.wins}/{pair.losses}</StatValue>
-                                                </StatItem>
-                                                {pair.buchudas > 0 && (
-                                                    <StatItem>
-                                                        <StatLabel>Buchudas:</StatLabel>
-                                                        <StatValue>{pair.buchudas}</StatValue>
-                                                    </StatItem>
-                                                )}
-                                                {pair.buchudasDeRe > 0 && (
-                                                    <StatItem>
-                                                        <StatLabel>Buchudas de Ré:</StatLabel>
-                                                        <StatValue>{pair.buchudasDeRe}</StatValue>
-                                                    </StatItem>
-                                                )}
-                                            </PairStats>
-                                        </PairInfo>
-                                    </PairCard>
-                                ))}
+                                <SectionTitle>Jogos</SectionTitle>
+                                {games.length === 0 ? (
+                                    <EmptyContainer>
+                                        <EmptyText>Nenhum jogo registrado</EmptyText>
+                                    </EmptyContainer>
+                                ) : (
+                                    <GamesList
+                                        data={games}
+                                        keyExtractor={(item) => item.id}
+                                        renderItem={({ item }) => (
+                                            <GameCard 
+                                                key={item.id}
+                                                onPress={() => router.push(`/comunidade/${communityId}/competicao/${competitionId}/jogo/${item.id}`)}
+                                            >
+                                                <GameTeams>
+                                                    <TeamScore>
+                                                        <Score>{item.team1_score}</Score>
+                                                        <TeamName>
+                                                            {item.team1_players?.map((player, index) => (
+                                                                player.name + (index < item.team1_players.length - 1 ? ' e ' : '')
+                                                            ))}
+                                                        </TeamName>
+                                                    </TeamScore>
+                                                    
+                                                    <Versus>X</Versus>
+                                                    
+                                                    <TeamScore>
+                                                        <Score>{item.team2_score}</Score>
+                                                        <TeamName>
+                                                            {item.team2_players?.map((player, index) => (
+                                                                player.name + (index < item.team2_players.length - 1 ? ' e ' : '')
+                                                            ))}
+                                                        </TeamName>
+                                                    </TeamScore>
+                                                </GameTeams>
+
+                                                <GameStatus status={item.status}>
+                                                    {item.status === 'pending' && 'Aguardando Início'}
+                                                    {item.status === 'in_progress' && 'Em Andamento'}
+                                                    {item.status === 'finished' && 'Finalizado'}
+                                                </GameStatus>
+                                            </GameCard>
+                                        )}
+                                    />
+                                )}
                             </Section>
                         </>
                     ) : (
@@ -779,6 +763,24 @@ const FinishButton = styled.TouchableOpacity<{ disabled?: boolean }>`
 `;
 
 const FinishButtonText = styled.Text`
+    color: ${colors.gray100};
+    font-size: 16px;
+    font-weight: bold;
+    margin-left: 8px;
+`;
+
+const ViewScoresButton = styled.TouchableOpacity`
+    background-color: ${colors.primary};
+    padding: 16px;
+    border-radius: 8px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    margin-top: 8px;
+    margin-bottom: 16px;
+`;
+
+const ViewScoresButtonText = styled.Text`
     color: ${colors.gray100};
     font-size: 16px;
     font-weight: bold;

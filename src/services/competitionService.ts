@@ -411,5 +411,25 @@ export const competitionService = {
             console.error('Erro ao finalizar competição:', error);
             throw error;
         }
-    }
+    },
+
+    async getCompetitionResults(id: string): Promise<CompetitionResult> {
+        try {
+            const { data: competition, error: competitionError } = await supabase
+                .from('competitions')
+                .select('status')
+                .eq('id', id)
+                .single();
+
+            if (competitionError) throw competitionError;
+            if (competition.status !== 'finished') {
+                throw new Error('Competição não está finalizada');
+            }
+
+            return this.finishCompetition(id);
+        } catch (error) {
+            console.error('Erro ao buscar resultados:', error);
+            throw error;
+        }
+    },
 };
