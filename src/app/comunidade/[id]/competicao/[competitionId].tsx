@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Alert, Modal, TouchableOpacity, ActivityIndicator, Text, View, FlatList, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import styled from 'styled-components/native';
 import { colors } from '@/styles/colors';
 import { Feather } from '@expo/vector-icons';
@@ -118,9 +119,14 @@ export default function CompetitionDetails() {
     }, [competitionId]);
 
     useEffect(() => {
-        loadCompetitionAndMembers();
         checkCanFinish();
     }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            loadCompetitionAndMembers();
+        }, [loadCompetitionAndMembers])
+    );
 
     const checkCanFinish = async () => {
         try {

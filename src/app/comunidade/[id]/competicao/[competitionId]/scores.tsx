@@ -64,18 +64,14 @@ export default function CompetitionScores() {
                                             <StatLabel>V/D:</StatLabel>
                                             <StatValue>{player.wins}/{player.losses}</StatValue>
                                         </StatItem>
-                                        {player.buchudas > 0 && (
-                                            <StatItem>
-                                                <StatLabel>Buchudas:</StatLabel>
-                                                <StatValue>{player.buchudas}</StatValue>
-                                            </StatItem>
-                                        )}
-                                        {player.buchudasDeRe > 0 && (
-                                            <StatItem>
-                                                <StatLabel>Buchudas de Ré:</StatLabel>
-                                                <StatValue>{player.buchudasDeRe}</StatValue>
-                                            </StatItem>
-                                        )}
+                                        <StatItem>
+                                            <StatLabel>Buchudas dadas:</StatLabel>
+                                            <StatValue>{player.buchudas}</StatValue>
+                                        </StatItem>
+                                        <StatItem>
+                                            <StatLabel>Buchudas de Ré dadas:</StatLabel>
+                                            <StatValue>{player.buchudasDeRe}</StatValue>
+                                        </StatItem>
                                     </PlayerStats>
                                 </PlayerInfo>
                             </PlayerCard>
@@ -103,18 +99,14 @@ export default function CompetitionScores() {
                                             <StatLabel>V/D:</StatLabel>
                                             <StatValue>{pair.wins}/{pair.losses}</StatValue>
                                         </StatItem>
-                                        {pair.buchudas > 0 && (
-                                            <StatItem>
-                                                <StatLabel>Buchudas:</StatLabel>
-                                                <StatValue>{pair.buchudas}</StatValue>
-                                            </StatItem>
-                                        )}
-                                        {pair.buchudasDeRe > 0 && (
-                                            <StatItem>
-                                                <StatLabel>Buchudas de Ré:</StatLabel>
-                                                <StatValue>{pair.buchudasDeRe}</StatValue>
-                                            </StatItem>
-                                        )}
+                                        <StatItem>
+                                            <StatLabel>Buchudas dadas:</StatLabel>
+                                            <StatValue>{pair.buchudas}</StatValue>
+                                        </StatItem>
+                                        <StatItem>
+                                            <StatLabel>Buchudas de Ré dadas:</StatLabel>
+                                            <StatValue>{pair.buchudasDeRe}</StatValue>
+                                        </StatItem>
                                     </PairStats>
                                 </PairInfo>
                             </PairCard>

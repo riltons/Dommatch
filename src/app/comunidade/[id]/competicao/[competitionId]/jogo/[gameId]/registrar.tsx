@@ -128,7 +128,12 @@ export default function RegisterResult() {
                     message = 'BUCHUDA DE RÉ! 🎉🔄\nIncrível virada do Time 2 após estar perdendo de 5x0!';
                 }
                 Alert.alert('Parabéns!', message, [
-                    { text: 'OK', onPress: () => router.back() }
+                    { 
+                        text: 'OK', 
+                        onPress: () => {
+                            router.back();
+                        }
+                    }
                 ]);
             } else {
                 router.back();

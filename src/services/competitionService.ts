@@ -418,8 +418,33 @@ export const competitionService = {
             if (updateError) throw updateError;
 
             return {
-                players: players.sort((a, b) => b.score - a.score),
-                pairs: pairs.sort((a, b) => b.score - a.score)
+                players: players.sort((a, b) => {
+                    // 1. Mais vitórias
+                    if (a.wins !== b.wins) return b.wins - a.wins;
+                    
+                    // 2. Menos derrotas
+                    if (a.losses !== b.losses) return a.losses - b.losses;
+                    
+                    // 3. Mais pontos
+                    if (a.score !== b.score) return b.score - a.score;
+                    
+                    // 4. Mais buchudas dadas
+                    if (a.buchudas !== b.buchudas) return b.buchudas - a.buchudas;
+                    
+                    // 5. Mais buchudas de Ré dadas
+                    if (a.buchudasDeRe !== b.buchudasDeRe) return b.buchudasDeRe - a.buchudasDeRe;
+                    
+                    return 0;
+                }),
+                pairs: pairs.sort((a, b) => {
+                    // Mantém a mesma lógica para as duplas
+                    if (a.wins !== b.wins) return b.wins - a.wins;
+                    if (a.losses !== b.losses) return a.losses - b.losses;
+                    if (a.score !== b.score) return b.score - a.score;
+                    if (a.buchudas !== b.buchudas) return b.buchudas - a.buchudas;
+                    if (a.buchudasDeRe !== b.buchudasDeRe) return b.buchudasDeRe - a.buchudasDeRe;
+                    return 0;
+                })
             };
         } catch (error) {
             console.error('Erro ao finalizar competição:', error);
