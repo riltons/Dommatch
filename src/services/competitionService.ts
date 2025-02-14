@@ -352,15 +352,17 @@ export const competitionService = {
                     pairStats[team2Key].losses++;
                     pairStats[team2Key].score += game.team2_score;
 
+                    // Buchuda normal (6x0)
                     if (game.team1_score === 6 && game.team2_score === 0) {
                         game.team1.forEach(playerId => playerStats[playerId].buchudas++);
                         pairStats[team1Key].buchudas++;
                     }
-                    if (game.team2_was_losing_5_0) {
+                    // Buchuda de Ré (time 1 estava perdendo de 5x0 e virou)
+                    if (game.team1_was_losing_5_0) {
                         game.team1.forEach(playerId => playerStats[playerId].buchudasDeRe++);
                         pairStats[team1Key].buchudasDeRe++;
                     }
-                } else if (game.team2_score > game.team1_score) {
+                } else {
                     // Time 2 venceu
                     game.team2.forEach(playerId => {
                         playerStats[playerId].wins++;
@@ -375,11 +377,13 @@ export const competitionService = {
                     pairStats[team1Key].losses++;
                     pairStats[team1Key].score += game.team1_score;
 
+                    // Buchuda normal (6x0)
                     if (game.team2_score === 6 && game.team1_score === 0) {
                         game.team2.forEach(playerId => playerStats[playerId].buchudas++);
                         pairStats[team2Key].buchudas++;
                     }
-                    if (game.team1_was_losing_5_0) {
+                    // Buchuda de Ré (time 2 estava perdendo de 5x0 e virou)
+                    if (game.team2_was_losing_5_0) {
                         game.team2.forEach(playerId => playerStats[playerId].buchudasDeRe++);
                         pairStats[team2Key].buchudasDeRe++;
                     }
