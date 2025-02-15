@@ -40,6 +40,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "21d5f3f4-d797-445d-a3d2-839027c57a02"
+      }
+    },
+    "owner": "riltons"
   }
 }

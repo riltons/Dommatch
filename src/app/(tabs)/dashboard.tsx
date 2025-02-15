@@ -28,6 +28,22 @@ interface Player {
     winRate: number;
 }
 
+interface Pair {
+    id: string;
+    player1: {
+        id: string;
+        name: string;
+    };
+    player2: {
+        id: string;
+        name: string;
+    };
+    wins: number;
+    buchudas: number;
+    buchudasDeRe: number;
+    winRate: number;
+}
+
 interface Activity {
     id: string;
     type: 'game' | 'competition' | 'player';
@@ -207,6 +223,43 @@ const ActivityTime = styled.Text`
     margin-top: 4px;
 `;
 
+const RankingCard = styled.View`
+    background-color: ${colors.backgroundMedium};
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid ${colors.tertiary}40;
+`;
+
+const RankingPosition = styled.Text`
+    font-size: 16px;
+    font-weight: bold;
+    color: ${colors.gray100};
+    margin-bottom: 8px;
+`;
+
+const RankingInfo = styled.View`
+    flex: 1;
+    margin-left: 12px;
+`;
+
+const RankingName = styled.Text`
+    font-size: 16px;
+    font-weight: bold;
+    color: ${colors.gray100};
+`;
+
+const RankingStats = styled.View`
+    flex-direction: row;
+    flex-wrap: wrap;
+`;
+
+const StatText = styled.Text`
+    font-size: 14px;
+    color: ${colors.gray300};
+    margin-right: 8px;
+`;
+
 const Dashboard: React.FC = () => {
     const router = useRouter();
     const { session } = useAuth();
@@ -241,6 +294,54 @@ const Dashboard: React.FC = () => {
             buchudas: 2,
             buchudasDeRe: 1,
             winRate: 63
+        }
+    ]);
+
+    const [topPairs, setTopPairs] = useState<Pair[]>([
+        {
+            id: '1',
+            player1: {
+                id: '1',
+                name: 'Eliane'
+            },
+            player2: {
+                id: '2',
+                name: 'Bruna'
+            },
+            wins: 32,
+            buchudas: 4,
+            buchudasDeRe: 1,
+            winRate: 80
+        },
+        {
+            id: '2',
+            player1: {
+                id: '3',
+                name: 'Mariana'
+            },
+            player2: {
+                id: '4',
+                name: 'João'
+            },
+            wins: 28,
+            buchudas: 3,
+            buchudasDeRe: 0,
+            winRate: 75
+        },
+        {
+            id: '3',
+            player1: {
+                id: '5',
+                name: 'Pedro'
+            },
+            player2: {
+                id: '6',
+                name: 'Ana'
+            },
+            wins: 25,
+            buchudas: 2,
+            buchudasDeRe: 1,
+            winRate: 70
         }
     ]);
 
@@ -391,6 +492,31 @@ const Dashboard: React.FC = () => {
                                         </PlayerStats>
                                     </PlayerInfo>
                                 </PlayerCard>
+                            ))}
+                        </SectionContainer>
+
+                        <SectionContainer>
+                            <SectionHeader>
+                                <SectionTitle>Top Duplas</SectionTitle>
+                                <ViewAllButton>
+                                    <ViewAllText>Ver todas</ViewAllText>
+                                    <Feather name="chevron-right" size={16} color={colors.primary} />
+                                </ViewAllButton>
+                            </SectionHeader>
+
+                            {topPairs.map((pair, index) => (
+                                <RankingCard key={pair.id}>
+                                    <RankingPosition>#{index + 1}</RankingPosition>
+                                    <RankingInfo>
+                                        <RankingName>{pair.player1.name} & {pair.player2.name}</RankingName>
+                                        <RankingStats>
+                                            <StatText>{pair.wins} vitórias • </StatText>
+                                            <StatText>{pair.buchudas} buchudas • </StatText>
+                                            <StatText>{pair.buchudasDeRe} buchudas de ré • </StatText>
+                                            <StatText>{pair.winRate}% aproveitamento</StatText>
+                                        </RankingStats>
+                                    </RankingInfo>
+                                </RankingCard>
                             ))}
                         </SectionContainer>
 
