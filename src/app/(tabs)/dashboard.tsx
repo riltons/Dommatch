@@ -505,18 +505,19 @@ const Dashboard: React.FC = () => {
                             </SectionHeader>
 
                             {topPairs.map((pair, index) => (
-                                <RankingCard key={pair.id}>
-                                    <RankingPosition>#{index + 1}</RankingPosition>
-                                    <RankingInfo>
-                                        <RankingName>{pair.player1.name} & {pair.player2.name}</RankingName>
-                                        <RankingStats>
-                                            <StatText>{pair.wins} vitórias • </StatText>
-                                            <StatText>{pair.buchudas} buchudas • </StatText>
-                                            <StatText>{pair.buchudasDeRe} buchudas de ré • </StatText>
-                                            <StatText>{pair.winRate}% aproveitamento</StatText>
-                                        </RankingStats>
-                                    </RankingInfo>
-                                </RankingCard>
+                                <PlayerCard key={pair.id}>
+                                    <MaterialCommunityIcons 
+                                        name={index === 0 ? "crown" : "star"} 
+                                        size={24} 
+                                        color={index === 0 ? "#FFD700" : colors.gray300} 
+                                    />
+                                    <PlayerInfo>
+                                        <PlayerName>{pair.player1.name} & {pair.player2.name}</PlayerName>
+                                        <PlayerStats>
+                                            {pair.wins} vitórias • {pair.buchudas} buchudas • {pair.buchudasDeRe} buchudas de ré • {pair.winRate}% aproveitamento
+                                        </PlayerStats>
+                                    </PlayerInfo>
+                                </PlayerCard>
                             ))}
                         </SectionContainer>
 
