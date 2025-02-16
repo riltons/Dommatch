@@ -275,6 +275,43 @@ export default function Comunidades() {
         router.push(`/comunidade/${communityId}`);
     };
 
+    const renderCommunity = (community: Community) => (
+        <CommunityCard
+            key={community.id}
+            onPress={() => router.push(`/comunidade/${community.id}`)}
+        >
+            <CommunityHeader>
+                <MaterialCommunityIcons
+                    name="account-group"
+                    size={32}
+                    color={colors.primary}
+                />
+                <CommunityInfo>
+                    <CommunityName>{community.name}</CommunityName>
+                    <CommunityDescription>{community.description}</CommunityDescription>
+                    <CommunityStats>
+                        <StatItem>
+                            <MaterialCommunityIcons
+                                name="account-multiple"
+                                size={16}
+                                color={colors.gray300}
+                            />
+                            <StatText>{community.members_count} membros</StatText>
+                        </StatItem>
+                        <StatItem>
+                            <MaterialCommunityIcons
+                                name="cards-playing-outline"
+                                size={16}
+                                color={colors.gray300}
+                            />
+                            <StatText>{community.games_count} jogos</StatText>
+                        </StatItem>
+                    </CommunityStats>
+                </CommunityInfo>
+            </CommunityHeader>
+        </CommunityCard>
+    );
+
     if (loading) {
         return (
             <Container>
@@ -303,39 +340,7 @@ export default function Comunidades() {
                         </EmptyText>
                     </EmptyContainer>
                 ) : (
-                    communities.map(community => (
-                        <CommunityCard key={community.id} onPress={() => handleCardPress(community.id)}>
-                            <CommunityHeader>
-                                <MaterialCommunityIcons 
-                                    name="account-group" 
-                                    size={40} 
-                                    color={colors.accent}
-                                />
-                                <CommunityInfo>
-                                    <CommunityName>{community.name}</CommunityName>
-                                    <CommunityDescription>{community.description}</CommunityDescription>
-                                    <CommunityStats>
-                                        <StatItem>
-                                            <MaterialCommunityIcons 
-                                                name="account-multiple" 
-                                                size={16} 
-                                                color={colors.gray300}
-                                            />
-                                            <StatText>{community.members_count} membros</StatText>
-                                        </StatItem>
-                                        <StatItem>
-                                            <MaterialCommunityIcons 
-                                                name="cards" 
-                                                size={16} 
-                                                color={colors.gray300}
-                                            />
-                                            <StatText>{community.games_count} jogos</StatText>
-                                        </StatItem>
-                                    </CommunityStats>
-                                </CommunityInfo>
-                            </CommunityHeader>
-                        </CommunityCard>
-                    ))
+                    communities.map(renderCommunity)
                 )}
             </ScrollContent>
 

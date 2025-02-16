@@ -5,11 +5,22 @@ interface UserStatistics {
     totalCompetitions: number;
     totalPlayers: number;
     averageScore: number;
+    totalCommunities: number;
 }
 
 export const statisticsService = {
     async getUserStatistics(userId: string): Promise<UserStatistics> {
         try {
+            if (!userId) {
+                return {
+                    totalGames: 0,
+                    totalCompetitions: 0,
+                    totalPlayers: 0,
+                    averageScore: 0,
+                    totalCommunities: 0
+                };
+            }
+
             console.log('Buscando estatísticas para o usuário:', userId);
 
             // Primeiro buscar as comunidades criadas pelo usuário
@@ -137,7 +148,8 @@ export const statisticsService = {
                 totalGames,
                 totalCompetitions,
                 totalPlayers,
-                averageScore
+                averageScore,
+                totalCommunities: communityIds.size
             };
 
             console.log('Estatísticas finais:', stats);

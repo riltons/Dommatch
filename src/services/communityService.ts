@@ -45,18 +45,60 @@ class CommunityService {
 
     async list() {
         try {
-            const { data, error } = await supabase
+            // Busca as comunidades com contagem de membros
+            const { data: communities, error: communitiesError } = await supabase
                 .from('communities')
-                .select('*')
+                .select(`
+                    *,
+                    members:community_members(count)
+                `)
                 .order('name');
 
-            if (error) {
-                console.error('Erro ao listar comunidades:', error);
+            if (communitiesError) {
+                console.error('Erro ao listar comunidades:', communitiesError);
                 throw new Error('Erro ao listar comunidades');
             }
 
-            this.communities = data;
-            return data;
+            // Para cada comunidade, busca suas competições
+            const communitiesPromises = communities.map(async (community) => {
+                const { data: competitions, error: competitionsError } = await supabase
+                    .from('competitions')
+                    .select('id')
+                    .eq('community_id', community.id);
+
+                if (competitionsError) {
+                    console.error('Erro ao buscar competições:', competitionsError);
+                    return { ...community, games_count: 0 };
+                }
+
+                // Para cada competição, busca seus jogos
+                const gamesPromises = competitions?.map(async (competition) => {
+                    const { data: games, error: gamesError } = await supabase
+                        .from('games')
+                        .select('id')
+                        .eq('competition_id', competition.id);
+
+                    if (gamesError) {
+                        console.error('Erro ao buscar jogos:', gamesError);
+                        return 0;
+                    }
+
+                    return games?.length || 0;
+                }) || [];
+
+                const gamesCounts = await Promise.all(gamesPromises);
+                const totalGames = gamesCounts.reduce((acc, count) => acc + count, 0);
+
+                return {
+                    ...community,
+                    members_count: community.members[0]?.count || 0,
+                    games_count: totalGames
+                };
+            });
+
+            const communitiesWithCounts = await Promise.all(communitiesPromises);
+            this.communities = communitiesWithCounts;
+            return communitiesWithCounts;
         } catch (error) {
             console.error('Erro ao listar comunidades:', error);
             throw error;

@@ -83,9 +83,16 @@ export default function NovoJogador() {
                     <TextInput
                         mode="outlined"
                         value={formData.phone}
-                        onChangeText={(text) => setFormData(prev => ({ ...prev, phone: text }))}
+                        onChangeText={(text) => {
+                            // Remove tudo que não for número
+                            const numericOnly = text.replace(/\D/g, '');
+                            // Limita a 11 caracteres
+                            const limitedText = numericOnly.slice(0, 11);
+                            setFormData(prev => ({ ...prev, phone: limitedText }));
+                        }}
                         placeholder="(00) 00000-0000"
                         keyboardType="phone-pad"
+                        maxLength={11}
                         style={{
                             backgroundColor: colors.backgroundDark,
                         }}

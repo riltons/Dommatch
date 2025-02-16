@@ -82,18 +82,18 @@ export default function RegisterResult() {
             const game = await gameService.getById(gameId as string);
             if (!game) return;
 
-            const team1 = await Promise.all(game.team1.map(async (playerId) => {
-                const player = await competitionService.getPlayerById(playerId);
-                return player;
-            }));
+            const team1 = await Promise.all([
+                game.team1_player1_id && competitionService.getPlayerById(game.team1_player1_id),
+                game.team1_player2_id && competitionService.getPlayerById(game.team1_player2_id)
+            ].filter(Boolean));
 
-            const team2 = await Promise.all(game.team2.map(async (playerId) => {
-                const player = await competitionService.getPlayerById(playerId);
-                return player;
-            }));
+            const team2 = await Promise.all([
+                game.team2_player1_id && competitionService.getPlayerById(game.team2_player1_id),
+                game.team2_player2_id && competitionService.getPlayerById(game.team2_player2_id)
+            ].filter(Boolean));
 
-            setTeam1Players(team1);
-            setTeam2Players(team2);
+            setTeam1Players(team1.filter(Boolean));
+            setTeam2Players(team2.filter(Boolean));
         } catch (error) {
             console.error('Erro ao carregar jogadores:', error);
             Alert.alert('Erro', 'Não foi possível carregar os jogadores');

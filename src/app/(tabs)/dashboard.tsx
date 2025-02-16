@@ -17,6 +17,7 @@ interface Stats {
     totalCompetitions: number;
     totalPlayers: number;
     averageScore: number;
+    totalCommunities: number;
 }
 
 interface Player {
@@ -159,12 +160,12 @@ const SectionTitle = styled.Text`
     color: ${colors.gray100};
 `;
 
-const ViewAllButton = styled.TouchableOpacity`
+const SeeAllButton = styled.TouchableOpacity`
     flex-direction: row;
     align-items: center;
 `;
 
-const ViewAllText = styled.Text`
+const SeeAllButtonText = styled.Text`
     color: ${colors.primary};
     font-size: 14px;
     margin-right: 4px;
@@ -267,7 +268,8 @@ const Dashboard: React.FC = () => {
         totalGames: 0,
         totalCompetitions: 0,
         totalPlayers: 0,
-        averageScore: 0
+        averageScore: 0,
+        totalCommunities: 0
     });
 
     const [topPlayers, setTopPlayers] = useState<Player[]>([
@@ -366,6 +368,8 @@ const Dashboard: React.FC = () => {
         }
     ]);
 
+    const [totalCommunities, setTotalCommunities] = useState(0);
+
     const chartData = {
         labels: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun"],
         datasets: [{
@@ -399,6 +403,14 @@ const Dashboard: React.FC = () => {
         }
 
         loadStatistics();
+    }, [session?.user?.id]);
+
+    useEffect(() => {
+        const fetchStatistics = async () => {
+            const stats = await statisticsService.getUserStatistics(session?.user?.id);
+            setTotalCommunities(stats.totalCommunities);
+        };
+        fetchStatistics();
     }, [session?.user?.id]);
 
     return (
@@ -444,12 +456,12 @@ const Dashboard: React.FC = () => {
                             </StatCardWrapper>
 
                             <StatCardWrapper>
-                                <StatCard>
+                                <StatCard onPress={() => router.push('/comunidades')}>
                                     <StatIcon>
-                                        <MaterialCommunityIcons name="star-outline" size={24} color={colors.primary} />
+                                        <MaterialCommunityIcons name="account-multiple" size={24} color={colors.primary} />
                                     </StatIcon>
-                                    <StatValue>{stats.averageScore.toFixed(1)}</StatValue>
-                                    <StatLabel>Média de Pontos</StatLabel>
+                                    <StatValue>{stats.totalCommunities}</StatValue>
+                                    <StatLabel>Comunidades</StatLabel>
                                 </StatCard>
                             </StatCardWrapper>
                         </StatisticsContainer>
@@ -472,10 +484,9 @@ const Dashboard: React.FC = () => {
                         <SectionContainer>
                             <SectionHeader>
                                 <SectionTitle>Top Jogadores</SectionTitle>
-                                <ViewAllButton onPress={() => router.push("/ranking")}>
-                                    <ViewAllText>Ver todos</ViewAllText>
-                                    <Feather name="chevron-right" size={16} color={colors.primary} />
-                                </ViewAllButton>
+                                <SeeAllButton onPress={() => router.push('/top-jogadores')}>
+                                    <SeeAllButtonText>Ver todas</SeeAllButtonText>
+                                </SeeAllButton>
                             </SectionHeader>
 
                             {topPlayers.map((player, index) => (
@@ -498,10 +509,9 @@ const Dashboard: React.FC = () => {
                         <SectionContainer>
                             <SectionHeader>
                                 <SectionTitle>Top Duplas</SectionTitle>
-                                <ViewAllButton>
-                                    <ViewAllText>Ver todas</ViewAllText>
-                                    <Feather name="chevron-right" size={16} color={colors.primary} />
-                                </ViewAllButton>
+                                <SeeAllButton onPress={() => router.push('/top-duplas')}>
+                                    <SeeAllButtonText>Ver todas</SeeAllButtonText>
+                                </SeeAllButton>
                             </SectionHeader>
 
                             {topPairs.map((pair, index) => (
@@ -524,10 +534,9 @@ const Dashboard: React.FC = () => {
                         <SectionContainer>
                             <SectionHeader>
                                 <SectionTitle>Atividades Recentes</SectionTitle>
-                                <ViewAllButton>
-                                    <ViewAllText>Ver todas</ViewAllText>
-                                    <Feather name="chevron-right" size={16} color={colors.primary} />
-                                </ViewAllButton>
+                                <SeeAllButton>
+                                    <SeeAllButtonText>Ver todas</SeeAllButtonText>
+                                </SeeAllButton>
                             </SectionHeader>
 
                             {recentActivities.map(activity => (

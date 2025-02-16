@@ -17,12 +17,14 @@ export interface GameRound {
 export interface Game {
     id: string;
     competition_id: string;
+    team1_player1_id: string;
+    team1_player2_id: string;
+    team2_player1_id: string;
+    team2_player2_id: string;
     team1_score: number;
     team2_score: number;
     status: 'pending' | 'in_progress' | 'finished';
     created_at: string;
-    team1: string[];
-    team2: string[];
     rounds: GameRound[];
     last_round_was_tie: boolean;
     team1_was_losing_5_0: boolean;
@@ -42,10 +44,18 @@ export const gameService = {
             const session = await supabase.auth.getSession();
             console.log('Sessão atual:', session);
 
+            // Extrair jogadores dos arrays
+            const [team1Player1, team1Player2] = data.team1;
+            const [team2Player1, team2Player2] = data.team2;
+
             const { data: newGame, error } = await supabase
                 .from('games')
                 .insert([{
-                    ...data,
+                    competition_id: data.competition_id,
+                    team1_player1_id: team1Player1,
+                    team1_player2_id: team1Player2,
+                    team2_player1_id: team2Player1,
+                    team2_player2_id: team2Player2,
                     team1_score: 0,
                     team2_score: 0,
                     status: 'pending',
@@ -189,8 +199,10 @@ export const gameService = {
                 .from('games')
                 .select(`
                     *,
-                    team1,
-                    team2
+                    team1_player1_id,
+                    team1_player2_id,
+                    team2_player1_id,
+                    team2_player2_id
                 `)
                 .eq('competition_id', competitionId)
                 .order('created_at', { ascending: false });
@@ -209,8 +221,10 @@ export const gameService = {
                 .from('games')
                 .select(`
                     *,
-                    team1,
-                    team2
+                    team1_player1_id,
+                    team1_player2_id,
+                    team2_player1_id,
+                    team2_player2_id
                 `)
                 .eq('id', id)
                 .single();
